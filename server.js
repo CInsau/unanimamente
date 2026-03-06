@@ -158,6 +158,27 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('roomReseted');
         }
     });
+	
+	socket.on('submitWords', (roomId, wordsArray) => {
+		const room = rooms[roomId];
+		if (room && room.players[socket.id]) {
+			// Guardamos las palabras
+			room.words[socket.id] = wordsArray.map(w => normalizeText(w)).filter(w => w);
+			
+			// Marcamos al jugador como "listo" para esta ronda
+			room.players[socket.id].ready = true;
+			
+			// Avisamos a todos para que aparezca la marca visual
+			io.to(roomId).emit('playerReady', socket.id);
+
+			// Si todos enviaron, procesamos resultados
+			if (Object.keys(room.words).length === Object.keys(room.players).length) {
+				// Antes de procesar, reseteamos el estado ready para la siguiente ronda o lobby
+				for (let id in room.players) room.players[id].ready = false;
+				processResults(roomId);
+			}
+		}
+	});
 });
 
 const PORT = process.env.PORT || 3000;

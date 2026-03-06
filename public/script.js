@@ -36,7 +36,17 @@ socket.on('updatePlayers', (players) => {
     const list = document.getElementById('playerList');
     list.innerHTML = '';
     for (let id in players) {
-        list.innerHTML += `<li>${players[id].name}</li>`;
+        const isReady = players[id].ready ? ' ✅' : '';
+        list.innerHTML += `<li id="player-${id}">${players[id].name}${isReady}</li>`;
+    }
+});
+
+socket.on('playerReady', (playerId) => {
+    const el = document.getElementById(`player-${playerId}`);
+    if (el && !el.innerText.includes('✅')) {
+        el.innerText += ' ✅';
+        el.style.color = '#28a745';
+        el.style.fontWeight = 'bold';
     }
 });
 
@@ -73,13 +83,31 @@ socket.on('roundStarted', (data) => {
 });
 
 function submitWords() {
-    document.getElementById('btnSubmit').disabled = true;
+    const btn = document.getElementById('btnSubmit');
+    if (btn.disabled) return; // Evitar doble clic
+
+    btn.disabled = true;
+    btn.innerText = "¡Enviado!";
+
+    // Bloquear todos los inputs de palabras
+    for(let i=1; i<=8; i++){
+        const input = document.getElementById(`word${i}`);
+        input.disabled = true;
+        input.style.backgroundColor = "#e9ecef"; // Color de campo bloqueado
+    }
+
     let words = [];
     for(let i=1; i<=8; i++){
         words.push(document.getElementById(`word${i}`).value);
     }
     socket.emit('submitWords', myRoomId, words);
 }
+
+socket.on('playerReady', (playerId) => {
+    const playerElements = document.querySelectorAll('#playerList li');
+    // Como el playerList se genera por nombre, buscamos el elemento que coincida
+    // Para hacerlo más preciso, vamos a retocar un poco la función updatePlayers
+});
 
 // ACTUALIZADO: Mostrar resultados y preparar la interfaz
 socket.on('showResults', (wordCounts) => {

@@ -146,3 +146,13 @@ body {
 .btn-mini-merge:hover {
     background-color: #ec971f;
 }
+
+input:disabled {
+    cursor: not-allowed;
+    border: 1px solid #ddd;
+    color: #6c757d;
+}
+
+#playerList li {
+    transition: all 0.3s ease;
+}
