@@ -179,42 +179,40 @@ io.on('connection', (socket) => {
 		const room = rooms[roomId];
 		if (room && room.host === socket.id) {
 			let roundScores = {};
-			
-			// Inicializar puntos de la ronda a 0 para todos
-			for (let pid in room.players) {
-				roundScores[pid] = 0;
-			}
+			for (let pid in room.players) roundScores[pid] = 0;
 
-			// Recorrer cada palabra del listado final tras la revisión
 			for (let word in room.currentWordCounts) {
 				let numPlayers = room.currentWordCounts[word].count;
-				
-				// Si la palabra la tiene más de una persona, es un acierto
 				if (numPlayers > 1) {
-					// Cada jugador que puso esa palabra recibe exactamente 1 PUNTO
 					room.currentWordCounts[word].players.forEach(pid => {
-						roundScores[pid] += 1; // <--- CAMBIO CLAVE: Antes sumaba 'count'
-						room.scores[pid] += 1; 
+						roundScores[pid] += numPlayers;
+						room.scores[pid] += numPlayers; 
 					});
 				}
 			}
 			
+			// Enviamos las puntuaciones, pero NO programamos la siguiente ronda automáticamente
 			io.to(roomId).emit('showScores', { 
 				roundScores, 
 				totalScores: room.scores, 
-				players: room.players 
+				players: room.players,
+				isLastRound: room.currentRound >= room.settings.rounds // Avisamos si es el final
 			});
-            
-            setTimeout(() => {
-                if (room.currentRound < room.settings.rounds) {
-                    room.currentRound++;
-                    startRound(roomId);
-                } else {
-                    io.to(roomId).emit('gameOver', { totalScores: room.scores, players: room.players });
-                }
-            }, 5000); // Muestra puntos 5 seg y sigue
-        }
-    });
+		}
+	});
+	
+	// NUEVO EVENTO: El Host decide pasar de ronda manualmente
+	socket.on('proceedToNextRound', (roomId) => {
+		const room = rooms[roomId];
+		if (room && room.host === socket.id) {
+			if (room.currentRound < room.settings.rounds) {
+				room.currentRound++;
+				startRound(roomId); // Función que ya tenemos para iniciar votación de temas
+			} else {
+				io.to(roomId).emit('gameOver', { totalScores: room.scores, players: room.players });
+			}
+		}
+	});
 	
 	// Reiniciar sala para nueva partida
     socket.on('resetRoom', (roomId) => {

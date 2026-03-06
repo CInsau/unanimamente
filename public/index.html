@@ -69,14 +69,19 @@
         </div>
 
         <div id="screen-scores" class="screen">
-            <h2>Puntuaciones</h2>
-            <ul id="scoresList"></ul>
-            
-            <div id="hostFinalControls" style="display:none; margin-top: 20px;">
-                <button onclick="resetGame()" style="background-color: #28a745;">Nueva Partida (Volver al Lobby)</button>
-            </div>
-            <p id="waitHostResart" style="display:none;">Esperando a que el creador configure una nueva partida...</p>
-        </div>
+			<h2>Puntuaciones de la Ronda</h2>
+			<ul id="scoresList"></ul>
+
+			<div id="hostScoreControls" style="display:none; margin-top: 20px;">
+				<button id="btnNextProceed" onclick="proceedToNext()" style="background-color: #28a745;">Continuar a la siguiente ronda</button>
+			</div>
+			
+			<p id="waitNextRoundMsg" style="display:none;">El anfitrión está revisando la tabla de puntos...</p>
+
+			<div id="hostFinalControls" style="display:none;">
+				<button onclick="resetGame()">Nueva Partida (Volver al Lobby)</button>
+			</div>
+		</div>
     </div>
     <script src="script.js"></script>
 </body>

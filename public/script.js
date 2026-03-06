@@ -226,26 +226,29 @@ function goToNextRound() {
 }
 
 socket.on('showScores', (data) => {
-    const list = document.getElementById('scoresList');
-    list.innerHTML = '<h3>Resultados de la Ronda</h3>';
-    
-    // Ordenar por quién ha ganado más en ESTA ronda
-    const sortedIds = Object.keys(data.players).sort((a, b) => (data.roundScores[b] || 0) - (data.roundScores[a] || 0));
-
-    sortedIds.forEach(id => {
-        let rs = data.roundScores[id] || 0;
-        let ts = data.totalScores[id] || 0;
-        let wordS = rs === 1 ? "coincidencia" : "coincidencias";
-        
-        list.innerHTML += `
-            <li class="score-item">
-                <strong>${data.players[id].name}</strong>: 
-                <span class="round-gain">+${rs} ${wordS}</span> 
-                <span class="total-score">(Total: ${ts})</span>
-            </li>`;
-    });
+    renderScoresList(data); // Tu función que pinta la lista de puntos
     showScreen('screen-scores');
+
+    if (isHost) {
+        // Si no es la última ronda, mostramos el botón de "Siguiente"
+        if (!data.isLastRound) {
+            document.getElementById('hostScoreControls').style.display = 'block';
+            document.getElementById('hostFinalControls').style.display = 'none';
+        } else {
+            // Si es la última, ocultamos el de "Siguiente" y mostramos "Nueva Partida"
+            document.getElementById('hostScoreControls').style.display = 'none';
+            document.getElementById('hostFinalControls').style.display = 'block';
+        }
+    } else {
+        document.getElementById('waitNextRoundMsg').style.display = 'block';
+    }
 });
+
+function proceedToNext() {
+    socket.emit('proceedToNextRound', myRoomId);
+    // Ocultamos el botón para evitar múltiples clics
+    document.getElementById('hostScoreControls').style.display = 'none';
+}
 
 socket.on('gameOver', (data) => {
     alert("¡Juego terminado!");
@@ -285,6 +288,8 @@ socket.on('roomReseted', () => {
     // Ocultar controles de final de partida
     document.getElementById('hostFinalControls').style.display = 'none';
     document.getElementById('waitHostResart').style.display = 'none';
+	document.getElementById('hostScoreControls').style.display = 'none';
+    document.getElementById('waitNextRoundMsg').style.display = 'none';
     
     // Volver al lobby
     showScreen('screen-lobby');
