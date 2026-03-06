@@ -315,3 +315,44 @@ function voteTheme(index) {
     document.getElementById('theme-opt-1').disabled = true;
     document.getElementById('wait-vote-msg').style.display = 'block';
 }
+
+// Esta es la función que faltaba y causaba el error
+function renderScoresList(data) {
+    const list = document.getElementById('scoresList');
+    list.innerHTML = ''; // Limpiar lista anterior
+
+    // 1. Título de la ronda
+    const title = document.createElement('h3');
+    title.innerText = "Resumen de aciertos:";
+    list.appendChild(title);
+
+    // 2. Ordenar jugadores por quién ha ganado más puntos en ESTA ronda
+    const sortedIds = Object.keys(data.players).sort((a, b) => 
+        (data.roundScores[b] || 0) - (data.roundScores[a] || 0)
+    );
+
+    // 3. Crear los elementos de la lista
+    sortedIds.forEach(id => {
+        const rs = data.roundScores[id] || 0;
+        const ts = data.totalScores[id] || 0;
+        const name = data.players[id].name;
+
+        const li = document.createElement('li');
+        li.style.display = "flex";
+        li.style.justifyContent = "space-between";
+        li.style.padding = "10px";
+        li.style.margin = "5px 0";
+        li.style.backgroundColor = "#f8f9fa";
+        li.style.borderRadius = "8px";
+        li.style.borderLeft = rs > 0 ? "5px solid #28a745" : "5px solid #ccc";
+
+        li.innerHTML = `
+            <span><strong>${name}</strong></span>
+            <span>
+                <span style="color: #28a745; font-weight: bold;">+${rs} pts</span> 
+                <small style="color: #666; margin-left: 10px;">(Total: ${ts})</small>
+            </span>
+        `;
+        list.appendChild(li);
+    });
+}
