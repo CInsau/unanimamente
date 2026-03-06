@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Unánimo Teams</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div id="screen-home" class="screen active">
+            <h1>Unánimo</h1>
+            <input type="text" id="playerName" placeholder="Tu Nombre">
+            <button onclick="createRoom()">Crear Sala</button>
+            <hr>
+            <input type="text" id="joinRoomId" placeholder="ID de la Sala">
+            <button onclick="joinRoom()">Unirse</button>
+        </div>
+
+        <div id="screen-lobby" class="screen">
+            <h2>Sala: <span id="displayRoomId"></span></h2>
+            <h3>Jugadores conectados:</h3>
+            <ul id="playerList"></ul>
+            
+            <div id="hostControls" style="display:none;">
+                <label>Rondas: <input type="number" id="configRounds" value="3" min="1"></label>
+                <label>Tiempo (seg): <input type="number" id="configTime" value="60" min="10"></label>
+                <button onclick="startGame()">Empezar Partida</button>
+            </div>
+            <p id="waitMessage">Esperando a que el creador inicie la partida...</p>
+        </div>
+
+        <div id="screen-game" class="screen">
+            <h2 id="themeDisplay">Tema...</h2>
+            <h3 class="timer">Tiempo: <span id="timeRemaining">60</span>s</h3>
+            <div id="wordInputs">
+                </div>
+            <button onclick="submitWords()" id="btnSubmit">Hecho</button>
+        </div>
+
+        <div id="screen-results" class="screen">
+            <h2>Resultados (Fase de Revisión)</h2>
+            <ul id="resultsList"></ul>
+            
+            <div id="votingModal" style="display:none;" class="modal">
+                <p id="votingQuestion">¿Aceptar cambio?</p>
+                <button onclick="castVote(true)">Sí</button>
+                <button onclick="castVote(false)">No</button>
+            </div>
+
+            <div id="hostResultsControls" style="display:none;">
+                <button onclick="goToNextRound()">Cerrar revisión y puntuar</button>
+            </div>
+        </div>
+
+        <div id="screen-scores" class="screen">
+            <h2>Puntuaciones</h2>
+            <ul id="scoresList"></ul>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
