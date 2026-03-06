@@ -57,8 +57,13 @@ function startGame() {
 }
 
 socket.on('roundStarted', (data) => {
+    // Ocultar votación y mostrar juego
+    document.getElementById('theme-voting-section').style.display = 'none';
+    document.getElementById('game-play-section').style.display = 'block';
+    
     document.getElementById('themeDisplay').innerText = data.theme;
     document.getElementById('btnSubmit').disabled = false;
+    document.getElementById('btnSubmit').innerText = "Hecho";
     
     // Generar 8 casillas
     const inputsDiv = document.getElementById('wordInputs');
@@ -222,12 +227,23 @@ function goToNextRound() {
 
 socket.on('showScores', (data) => {
     const list = document.getElementById('scoresList');
-    list.innerHTML = '';
-    for (let id in data.players) {
-        let roundScore = data.roundScores[id] || 0;
-        let totalScore = data.totalScores[id] || 0;
-        list.innerHTML += `<li>${data.players[id].name}: +${roundScore} esta ronda | Total: ${totalScore}</li>`;
-    }
+    list.innerHTML = '<h3>Resultados de la Ronda</h3>';
+    
+    // Ordenar por quién ha ganado más en ESTA ronda
+    const sortedIds = Object.keys(data.players).sort((a, b) => (data.roundScores[b] || 0) - (data.roundScores[a] || 0));
+
+    sortedIds.forEach(id => {
+        let rs = data.roundScores[id] || 0;
+        let ts = data.totalScores[id] || 0;
+        let wordS = rs === 1 ? "coincidencia" : "coincidencias";
+        
+        list.innerHTML += `
+            <li class="score-item">
+                <strong>${data.players[id].name}</strong>: 
+                <span class="round-gain">+${rs} ${wordS}</span> 
+                <span class="total-score">(Total: ${ts})</span>
+            </li>`;
+    });
     showScreen('screen-scores');
 });
 
@@ -274,3 +290,23 @@ socket.on('roomReseted', () => {
     showScreen('screen-lobby');
     alert("El anfitrión ha reiniciado la sala. ¡Listos para otra!");
 });
+
+socket.on('startThemeVote', (data) => {
+    showScreen('screen-game');
+    document.getElementById('theme-voting-section').style.display = 'block';
+    document.getElementById('game-play-section').style.display = 'none';
+    document.getElementById('wait-vote-msg').style.display = 'none';
+    
+    // Poner los nombres de los temas en los botones
+    document.getElementById('theme-opt-0').innerText = data.options[0];
+    document.getElementById('theme-opt-1').innerText = data.options[1];
+    document.getElementById('theme-opt-0').disabled = false;
+    document.getElementById('theme-opt-1').disabled = false;
+});
+
+function voteTheme(index) {
+    socket.emit('castThemeVote', myRoomId, index);
+    document.getElementById('theme-opt-0').disabled = true;
+    document.getElementById('theme-opt-1').disabled = true;
+    document.getElementById('wait-vote-msg').style.display = 'block';
+}

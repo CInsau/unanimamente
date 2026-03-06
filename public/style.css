@@ -156,3 +156,24 @@ input:disabled {
 #playerList li {
     transition: all 0.3s ease;
 }
+
+.btn-theme {
+    background-color: #6f42c1;
+    color: white;
+    padding: 20px;
+    font-size: 1.2rem;
+    margin: 10px;
+    width: 80%;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.btn-theme:hover:not(:disabled) {
+    background-color: #59359a;
+    transform: scale(1.05);
+}
+
+.btn-theme:disabled {
+    opacity: 0.6;
+    cursor: default;
+}

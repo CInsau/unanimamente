@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Unánimo Teams</title>
+    <title>Unánima-Mente</title>
+	<link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -13,7 +14,7 @@
         </div>
 		
 		<div id="screen-home" class="screen active">
-            <h1>Unánima-Mente</h1>
+            <!--h1>Unánima-Mente</h1-->
             <input type="text" id="playerName" placeholder="Tu Nombre">
             <button onclick="createRoom()">Crear Sala</button>
             <hr>
@@ -35,12 +36,22 @@
         </div>
 
         <div id="screen-game" class="screen">
-            <h2 id="themeDisplay">Tema...</h2>
-            <h3 class="timer">Tiempo: <span id="timeRemaining">60</span>s</h3>
-            <div id="wordInputs">
-                </div>
-            <button onclick="submitWords()" id="btnSubmit">Hecho</button>
-        </div>
+			<div id="theme-voting-section">
+				<h3>Vota el tema de esta ronda:</h3>
+				<div id="theme-options-container">
+					<button id="theme-opt-0" class="btn-theme" onclick="voteTheme(0)"></button>
+					<button id="theme-opt-1" class="btn-theme" onclick="voteTheme(1)"></button>
+				</div>
+				<p id="wait-vote-msg" style="display:none;">Esperando al resto de jugadores...</p>
+			</div>
+
+			<div id="game-play-section" style="display:none;">
+				<h2 id="themeDisplay">Tema...</h2>
+				<h3 class="timer">Tiempo: <span id="timeRemaining">60</span>s</h3>
+				<div id="wordInputs"></div>
+				<button onclick="submitWords()" id="btnSubmit">Hecho</button>
+			</div>
+		</div>
 
         <div id="screen-results" class="screen">
             <h2>Resultados (Fase de Revisión)</h2>
