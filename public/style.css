@@ -63,3 +63,86 @@ li {
     margin-top: 20px;
     border-radius: 8px;
 }
+
+/* --- Estilos para el Logo Global --- */
+#game-logo-container {
+    text-align: center;
+    margin-bottom: 20px; /* Espacio antes del título de la pantalla */
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef; /* Línea sutil separadora */
+}
+
+.game-logo {
+    max-width: 250px; /* Tamaño del logo en escritorio */
+    height: auto;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Ajustes de tipografía para el nombre */
+.game-name-highlight {
+    color: #0056b3; /* Usamos el azul corporativo */
+    font-weight: bold;
+}
+
+/* --- Fin Estilos Logo --- */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+#app {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    /* Aseguramos que el contenido principal respete el logo superior */
+    display: flex;
+    flex-direction: column;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Estilos para la nueva lista de resultados con fusiones del Host */
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+}
+
+.host-merge-controls {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.host-merge-controls select {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    width: auto; /* Que no ocupe todo el ancho */
+    margin: 0;
+}
+
+.btn-mini-merge {
+    background-color: #f0ad4e; /* Color naranja/aviso */
+    padding: 5px 10px;
+    font-size: 12px;
+    margin: 0;
+}
+.btn-mini-merge:hover {
+    background-color: #ec971f;
+}

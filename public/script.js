@@ -81,22 +81,83 @@ function submitWords() {
     socket.emit('submitWords', myRoomId, words);
 }
 
-// Mostrar resultados y preparar votaciones
+// ACTUALIZADO: Mostrar resultados y preparar la interfaz
 socket.on('showResults', (wordCounts) => {
+    // Guardamos localmente las palabras para el desplegable del Host
+    window.currentRoundWords = Object.keys(wordCounts).sort(); 
     renderResults(wordCounts);
     showScreen('screen-results');
     if (isHost) document.getElementById('hostResultsControls').style.display = 'block';
 });
 
+// NUEVO EVENTO: Actualización en tiempo real de la lista tras una fusión del host
+socket.on('updateResultsList', (wordCounts) => {
+    // Actualizamos la lista de palabras disponibles para el desplegable
+    window.currentRoundWords = Object.keys(wordCounts).sort();
+    renderResults(wordCounts);
+});
+
+// ACTUALIZADO: Renderizar la lista (Cambio importante en la interfaz del Host)
 function renderResults(wordCounts) {
     const list = document.getElementById('resultsList');
     list.innerHTML = '';
+    
+    // Ordenar palabras por frecuencia (más repetidas arriba)
     const sortedWords = Object.keys(wordCounts).sort((a, b) => wordCounts[b].count - wordCounts[a].count);
     
     sortedWords.forEach(word => {
         let li = document.createElement('li');
-        li.innerHTML = `<strong>${word}</strong> (${wordCounts[word].count} personas) 
-        <button onclick="requestMerge('${word}')">Unir a otra...</button>`;
+        li.className = 'result-item'; // Para estilos CSS
+
+        // Parte 1: Info de la palabra y conteo
+        let infoSpan = document.createElement('span');
+        infoSpan.innerHTML = `<strong>${word}</strong> (${wordCounts[word].count})`;
+        li.appendChild(infoSpan);
+
+        // Parte 2: Controles de fusión (SOLO PARA EL HOST)
+        if (isHost) {
+            let controlsDiv = document.createElement('div');
+            controlsDiv.className = 'host-merge-controls';
+
+            // Crear el desplegable (Select)
+            let select = document.createElement('select');
+            select.id = `merge-select-${word}`; // ID único para esta palabra
+            
+            // Opción por defecto
+            let defaultOpt = document.createElement('option');
+            defaultOpt.text = "Unir a...";
+            defaultOpt.value = "";
+            select.add(defaultOpt);
+
+            // Añadir todas las OTRAS palabras como opciones
+            window.currentRoundWords.forEach(otherWord => {
+                if (otherWord !== word) {
+                    let option = document.createElement('option');
+                    option.value = otherWord;
+                    option.text = otherWord;
+                    select.add(option);
+                }
+            });
+
+            // Botón para confirmar la fusión
+            let mergeBtn = document.createElement('button');
+            mergeBtn.innerText = "OK";
+            mergeBtn.className = "btn-mini-merge";
+            mergeBtn.onclick = () => {
+                const targetWord = document.getElementById(`merge-select-${word}`).value;
+                if (targetWord) {
+                    // Confirmación verbal por Teams (implícita), confirmación visual aquí
+                    if(confirm(`¿Fusionar "${word}" DENTRO de "${targetWord}"?`)) {
+                        socket.emit('forceMerge', myRoomId, word, targetWord);
+                    }
+                }
+            };
+
+            controlsDiv.appendChild(select);
+            controlsDiv.appendChild(mergeBtn);
+            li.appendChild(controlsDiv);
+        }
+
         list.appendChild(li);
     });
 }
@@ -145,4 +206,43 @@ socket.on('showScores', (data) => {
 socket.on('gameOver', (data) => {
     alert("¡Juego terminado!");
     // Aquí podrías añadir un botón de "Volver a jugar" que recargue la página.
+});
+
+// 1. Al final del evento 'showScores' o 'gameOver', mostramos el botón al host
+socket.on('gameOver', (data) => {
+    // Reutilizamos la lógica de mostrar puntuaciones
+    renderFinalScores(data); 
+    if (isHost) {
+        document.getElementById('hostFinalControls').style.display = 'block';
+    } else {
+        document.getElementById('waitHostResart').style.display = 'block';
+    }
+});
+
+function renderFinalScores(data) {
+    const list = document.getElementById('scoresList');
+    list.innerHTML = '<h3>¡Ranking Final!</h3>';
+    // Ordenar jugadores por puntuación total
+    const sortedIds = Object.keys(data.totalScores).sort((a, b) => data.totalScores[b] - data.totalScores[a]);
+    
+    sortedIds.forEach(id => {
+        list.innerHTML += `<li><strong>${data.players[id].name}</strong>: ${data.totalScores[id]} puntos</li>`;
+    });
+    showScreen('screen-scores');
+}
+
+// 2. Función que llama el Host al pulsar el botón
+function resetGame() {
+    socket.emit('resetRoom', myRoomId);
+}
+
+// 3. Evento que reciben todos cuando el Host resetea
+socket.on('roomReseted', () => {
+    // Ocultar controles de final de partida
+    document.getElementById('hostFinalControls').style.display = 'none';
+    document.getElementById('waitHostResart').style.display = 'none';
+    
+    // Volver al lobby
+    showScreen('screen-lobby');
+    alert("El anfitrión ha reiniciado la sala. ¡Listos para otra!");
 });

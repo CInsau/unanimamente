@@ -8,7 +8,11 @@
 </head>
 <body>
     <div id="app">
-        <div id="screen-home" class="screen active">
+        <div id="game-logo-container">
+            <img src="logo.png" alt="Unánima-mente" class="game-logo">
+        </div>
+		
+		<div id="screen-home" class="screen active">
             <h1>Unánimo</h1>
             <input type="text" id="playerName" placeholder="Tu Nombre">
             <button onclick="createRoom()">Crear Sala</button>
@@ -56,6 +60,11 @@
         <div id="screen-scores" class="screen">
             <h2>Puntuaciones</h2>
             <ul id="scoresList"></ul>
+            
+            <div id="hostFinalControls" style="display:none; margin-top: 20px;">
+                <button onclick="resetGame()" style="background-color: #28a745;">Nueva Partida (Volver al Lobby)</button>
+            </div>
+            <p id="waitHostResart" style="display:none;">Esperando a que el creador configure una nueva partida...</p>
         </div>
     </div>
     <script src="script.js"></script>

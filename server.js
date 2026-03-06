@@ -53,65 +53,67 @@ io.on('connection', (socket) => {
 
     // Recibir palabras
     socket.on('submitWords', (roomId, wordsArray) => {
-        const room = rooms[roomId];
-        if (room) {
-            room.words[socket.id] = wordsArray.map(w => w.toLowerCase().trim()).filter(w => w);
-            // Si todos enviaron, ir a resultados
-            if (Object.keys(room.words).length === Object.keys(room.players).length) {
-                processResults(roomId);
-            }
-        }
-    });
+		const room = rooms[roomId];
+		if (room) {
+			// Normalizamos cada palabra antes de guardarla
+			room.words[socket.id] = wordsArray
+				.map(w => normalizeText(w)) // <--- CAMBIO AQUÍ
+				.filter(w => w); // Quita vacíos
+
+			// Si todos enviaron, ir a resultados
+			if (Object.keys(room.words).length === Object.keys(room.players).length) {
+				processResults(roomId);
+			}
+		}
+	});
 
     function processResults(roomId) {
-        const room = rooms[roomId];
-        room.state = 'results';
-        // Agrupar palabras
-        let wordCounts = {};
-        for (let playerId in room.words) {
-            room.words[playerId].forEach(word => {
-                if (!wordCounts[word]) wordCounts[word] = { count: 0, players: [] };
-                wordCounts[word].count++;
-                if (!wordCounts[word].players.includes(playerId)) {
-                    wordCounts[word].players.push(playerId);
-                }
-            });
-        }
-        room.currentWordCounts = wordCounts;
-        io.to(roomId).emit('showResults', wordCounts);
-    }
-
-    // Proponer votación para unir palabras (ej. "coches" -> "coche")
-    socket.on('proposeMerge', (roomId, oldWord, newWord) => {
-        const room = rooms[roomId];
-        if (room) {
-            room.currentVote = { oldWord, newWord, votes: {}, yesNeeded: Object.keys(room.players).length };
-            io.to(roomId).emit('startVote', { oldWord, newWord, proposer: rooms[roomId].players[socket.id].name });
-        }
-    });
-
-    socket.on('castVote', (roomId, isYes) => {
-        const room = rooms[roomId];
-        if (room && room.currentVote) {
-            room.currentVote.votes[socket.id] = isYes;
-            const totalVotes = Object.keys(room.currentVote.votes).length;
-            
-            if (totalVotes === room.currentVote.yesNeeded) {
-                // Chequear si es unánime
-                const allYes = Object.values(room.currentVote.votes).every(v => v === true);
-                if (allYes) {
-                    // Fusionar palabras
-                    const oldW = room.currentVote.oldWord;
-                    const newW = room.currentVote.newWord;
-                    room.currentWordCounts[newW].count += room.currentWordCounts[oldW].count;
-                    room.currentWordCounts[newW].players.push(...room.currentWordCounts[oldW].players);
-                    delete room.currentWordCounts[oldW];
-                }
-                io.to(roomId).emit('voteEnded', { success: allYes, wordCounts: room.currentWordCounts });
-                room.currentVote = null;
-            }
-        }
-    });
+		const room = rooms[roomId];
+		room.state = 'results';
+		
+		let wordCounts = {};
+		for (let playerId in room.words) {
+			room.words[playerId].forEach(word => {
+				if (!wordCounts[word]) wordCounts[word] = { count: 0, players: [] };
+				wordCounts[word].count++;
+				if (!wordCounts[word].players.includes(playerId)) {
+					room.currentWordCounts = wordCounts; // Guardar estado actual
+					wordCounts[word].players.push(playerId);
+				}
+			});
+		}
+		// room.currentWordCounts = wordCounts; // Ya se guarda arriba
+		io.to(roomId).emit('showResults', wordCounts);
+	}
+	
+	// ACTUALIZADO: Fusión DIRECTA (Solo el Host puede llamar esto, no hay votación)
+	// Eliminamos 'proposeMerge', 'startVote', 'castVote', 'voteEnded'
+	socket.on('forceMerge', (roomId, oldWord, newWord) => {
+		const room = rooms[roomId];
+		// Verificación de seguridad: solo el host puede hacer esto
+		if (room && room.host === socket.id && room.state === 'results') {
+			
+			// Verificamos que ambas palabras existan en la ronda actual
+			if (room.currentWordCounts[oldWord] && room.currentWordCounts[newWord]) {
+				
+				// Fusionar datos
+				room.currentWordCounts[newWord].count += room.currentWordCounts[oldWord].count;
+				
+				// Combinar listas de jugadores (evitando duplicados si alguien puso ambas, aunque Unánimo no suele permitirlo)
+				const combinedPlayers = new Set([
+					...room.currentWordCounts[newWord].players,
+					...room.currentWordCounts[oldWord].players
+				]);
+				room.currentWordCounts[newWord].players = Array.from(combinedPlayers);
+				
+				// Eliminar la palabra antigua
+				delete room.currentWordCounts[oldWord];
+				
+				// Notificar a todos los jugadores de la actualización inmediata de la lista
+				io.to(roomId).emit('updateResultsList', room.currentWordCounts);
+			}
+		}
+	});
 
     // Calcular puntuaciones y siguiente ronda
     socket.on('nextRound', (roomId) => {
@@ -141,9 +143,33 @@ io.on('connection', (socket) => {
             }, 5000); // Muestra puntos 5 seg y sigue
         }
     });
+	
+	// Reiniciar sala para nueva partida
+    socket.on('resetRoom', (roomId) => {
+        const room = rooms[roomId];
+        if (room && room.host === socket.id) {
+            room.state = 'lobby';
+            room.currentRound = 0;
+            room.words = {};
+            // Mantener los jugadores y sus puntuaciones totales si quieres, 
+            // o resetear puntuaciones a 0:
+            for (let pid in room.scores) room.scores[pid] = 0;
+            
+            io.to(roomId).emit('roomReseted');
+        }
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
+
+// NUEVA FUNCIÓN AUXILIAR: Normalizar texto (quita tildes y pasa a minúsculas)
+function normalizeText(text) {
+    return text
+        .trim()
+        .toLowerCase()
+        .normalize("NFD") // Separa la letra de la tilde
+        .replace(/[\u0300-\u036f]/g, ""); // Elimina los símbolos de tilde
+}
