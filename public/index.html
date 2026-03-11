@@ -56,19 +56,18 @@
 		</div>
 
         <div id="screen-results" class="screen">
-            <h2>Resultados (Fase de Revisión)</h2>
-            <ul id="resultsList"></ul>
-            
-            <div id="votingModal" style="display:none;" class="modal">
-                <p id="votingQuestion">¿Aceptar cambio?</p>
-                <button onclick="castVote(true)">Sí</button>
-                <button onclick="castVote(false)">No</button>
-            </div>
+			<h2>Fase de Revisión</h2>
+			<div id="active-speaker-info">
+				<h3>Turno de: <span id="current-speaker-name">-</span></h3>
+			</div>
 
-            <div id="hostResultsControls" style="display:none;">
-                <button onclick="goToNextRound()">Cerrar revisión y puntuar</button>
-            </div>
-        </div>
+			<div id="cards-container" class="cards-grid"></div>
+
+			<div id="host-revision-controls" style="display:none; margin-top:20px;">
+				<button onclick="nextSpeaker()" class="btn-next">Siguiente Jugador</button>
+				<button onclick="finishRevision()" class="btn-finish">Cerrar y ver Puntuación Final</button>
+			</div>
+		</div>
 
         <div id="screen-scores" class="screen">
 			<h2>Puntuaciones de la Ronda</h2>

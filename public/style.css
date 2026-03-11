@@ -247,3 +247,37 @@ input:disabled {
 .gold-winner.reordered {
     animation: winnerPulse 2s infinite ease-in-out;
 }
+
+.cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+}
+
+.player-card {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 15px;
+    width: 200px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.player-card.my-card { border-color: #4facfe; transform: scale(1.05); }
+
+.word-slot {
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    background: #f0f0f0;
+}
+
+.word-slot.hidden .word-text { filter: blur(4px); opacity: 0.3; }
+.word-slot.solo { background-color: #ffebee; color: #c62828; } /* Rojo */
+.word-slot.matched { background-color: #e8f5e9; color: #2e7d32; font-weight: bold; } /* Verde */
+
+.word-score { float: right; font-size: 0.8rem; }

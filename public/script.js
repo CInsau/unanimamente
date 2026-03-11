@@ -86,7 +86,7 @@ socket.on('roundStarted', (data) => {
         }
     }, 1000);
 	
-	document.getElementById('round-ready-count').innerText = `0 / ${data.total_players_info || '?'}`;
+	document.getElementById('round-ready-count').innerText = `0 / ${data.totalPlayers}`;
 });
 
 function submitWords() {
@@ -424,4 +424,102 @@ socket.on('updateRoundProgress', (data) => {
     if (el && !el.innerText.includes('✅')) {
         el.innerText += ' ✅';
     }
+});
+
+let myWords = [];
+
+socket.on('startRevisionPhase', (data) => {
+    showScreen('screen-results');
+    const container = document.getElementById('cards-container');
+    container.innerHTML = '';
+
+    const speakerName = document.getElementById('current-speaker-name');
+    speakerName.innerText = players_local_cache[data.activePlayerId]?.name || "Alguien";
+
+    // Crear una tarjeta por cada jugador
+    data.playerOrder.forEach(pid => {
+        const card = document.createElement('div');
+        card.className = `player-card ${pid === socket.id ? 'my-card' : ''}`;
+        card.id = `card-${pid}`;
+        
+        let wordsHTML = '';
+        data.allWords[pid].forEach((word, index) => {
+            wordsHTML += `
+                <div class="word-slot hidden" id="slot-${pid}-${index}" 
+                     onclick="handleWordClick('${pid}', ${index}, '${word}')">
+                    <span class="word-text">${word}</span>
+                    <span class="word-score"></span>
+                </div>`;
+        });
+
+        card.innerHTML = `
+            <h4>${players_local_cache[pid].name}</h4>
+            <div class="card-words">${wordsHTML}</div>
+            <div class="card-total">Puntos Ronda: <span id="points-${pid}">0</span></div>
+        `;
+        container.appendChild(card);
+    });
+
+    if (isHost) document.getElementById('host-revision-controls').style.display = 'block';
+});
+
+function handleWordClick(pid, index, wordText) {
+    // 1. Si es MI palabra, la revelo
+    if (pid === socket.id) {
+        socket.emit('revealWord', myRoomId, wordText);
+    } 
+    // 2. Si es la palabra de OTRO y ya está revelada, puedo votar VETO
+    else {
+        const slot = document.getElementById(`slot-${pid}-${index}`);
+        if (!slot.classList.contains('hidden')) {
+            if(confirm("¿Votar para anular esta palabra?")) {
+                socket.emit('castVeto', myRoomId, pid, index);
+            }
+        }
+    }
+}
+
+socket.on('wordRevealed', (data) => {
+    // Buscamos en todas las tarjetas quién tiene esta palabra
+    // Nota: Esto asume que comparamos de forma normalizada
+    const allSlots = document.querySelectorAll('.word-slot');
+    
+    allSlots.forEach(slot => {
+        const slotText = slot.querySelector('.word-text').innerText;
+        if (normalizeText(slotText) === data.word) {
+            slot.classList.remove('hidden');
+            
+            // Actualizar color y puntos
+            if (data.count > 1) {
+                slot.className = 'word-slot matched';
+                slot.querySelector('.word-score').innerText = `(${data.count})`;
+            } else {
+                slot.className = 'word-slot solo';
+                slot.querySelector('.word-score').innerText = '(0)';
+            }
+        }
+    });
+    updateRealTimeScores();
+});
+
+function updateRealTimeScores() {
+    // Recalcula los puntos visibles basándose en las clases 'matched'
+    const players = Object.keys(players_local_cache);
+    players.forEach(pid => {
+        const matchedWords = document.querySelectorAll(`#card-${pid} .word-slot.matched`).length;
+        // Según tu regla: X puntos donde X es el total de personas
+        let total = 0;
+        document.querySelectorAll(`#card-${pid} .word-slot.matched`).forEach(slot => {
+            const scoreText = slot.querySelector('.word-score').innerText;
+            total += parseInt(scoreText.replace(/\(|\)/g, '')) || 0;
+        });
+        document.getElementById(`points-${pid}`).innerText = total;
+    });
+}
+
+socket.on('wordVetoed', (data) => {
+    const slot = document.getElementById(`slot-${data.playerId}-${data.wordIndex}`);
+    slot.className = 'word-slot hidden';
+    slot.querySelector('.word-score').innerText = '';
+    updateRealTimeScores();
 });

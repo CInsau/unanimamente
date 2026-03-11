@@ -125,12 +125,14 @@ io.on('connection', (socket) => {
 			chosenTheme = room.currentOptions[hostVote !== undefined ? hostVote : 0];
 		}
 
-		room.state = 'playing';
-		room.words = {};
+		// Obtenemos el número total de jugadores en la sala
+		const totalPlayers = Object.keys(room.players).length;
+
 		io.to(roomId).emit('roundStarted', { 
 			round: room.currentRound, 
 			theme: chosenTheme, 
-			time: room.settings.time 
+			time: room.settings.time,
+			totalPlayers: totalPlayers // <--- ENVIAMOS EL TOTAL AQUÍ
 		});
 	}
 
@@ -160,48 +162,70 @@ io.on('connection', (socket) => {
 
     function processResults(roomId) {
 		const room = rooms[roomId];
-		room.state = 'results';
-		
-		let wordCounts = {};
-		for (let playerId in room.words) {
-			room.words[playerId].forEach(word => {
-				if (!wordCounts[word]) wordCounts[word] = { count: 0, players: [] };
-				wordCounts[word].count++;
-				if (!wordCounts[word].players.includes(playerId)) {
-					room.currentWordCounts = wordCounts; // Guardar estado actual
-					wordCounts[word].players.push(playerId);
-				}
-			});
-		}
-		// room.currentWordCounts = wordCounts; // Ya se guarda arriba
-		io.to(roomId).emit('showResults', wordCounts);
+		room.state = 'revision';
+		room.activePlayerIndex = 0; // Quién está leyendo
+		room.playerOrder = Object.keys(room.players); // Orden de turnos
+		room.revealedWords = {}; // { palabra: [playerIds] }
+		room.pendingVetoes = {}; // { playerId_wordIndex: [votos] }
+
+		io.to(roomId).emit('startRevisionPhase', {
+			playerOrder: room.playerOrder,
+			allWords: room.words, // Enviamos todas las palabras (estarán ocultas por CSS)
+			activePlayerId: room.playerOrder[0]
+		});
 	}
-	
-	// ACTUALIZADO: Fusión DIRECTA (Solo el Host puede llamar esto, no hay votación)
-	// Eliminamos 'proposeMerge', 'startVote', 'castVote', 'voteEnded'
-	socket.on('forceMerge', (roomId, oldWord, newWord) => {
+
+	// Evento cuando un jugador pulsa su propia palabra para decirla
+	socket.on('revealWord', (roomId, wordText) => {
 		const room = rooms[roomId];
-		// Verificación de seguridad: solo el host puede hacer esto
-		if (room && room.host === socket.id && room.state === 'results') {
-			
-			// Verificamos que ambas palabras existan en la ronda actual
-			if (room.currentWordCounts[oldWord] && room.currentWordCounts[newWord]) {
-				
-				// Fusionar datos
-				room.currentWordCounts[newWord].count += room.currentWordCounts[oldWord].count;
-				
-				// Combinar listas de jugadores (evitando duplicados si alguien puso ambas, aunque Unánimo no suele permitirlo)
-				const combinedPlayers = new Set([
-					...room.currentWordCounts[newWord].players,
-					...room.currentWordCounts[oldWord].players
-				]);
-				room.currentWordCounts[newWord].players = Array.from(combinedPlayers);
-				
-				// Eliminar la palabra antigua
-				delete room.currentWordCounts[oldWord];
-				
-				// Notificar a todos los jugadores de la actualización inmediata de la lista
-				io.to(roomId).emit('updateResultsList', room.currentWordCounts);
+		if (!room || room.state !== 'revision') return;
+
+		// Normalizamos para comparar
+		const norm = normalizeText(wordText);
+		
+		if (!room.revealedWords[norm]) {
+			room.revealedWords[norm] = [];
+		}
+		
+		// Si el jugador no estaba ya en esa palabra, lo añadimos
+		if (!room.revealedWords[norm].includes(socket.id)) {
+			room.revealedWords[norm].push(socket.id);
+		}
+
+		// Calculamos puntos en tiempo real para esta palabra
+		const count = room.revealedWords[norm].length;
+		
+		io.to(roomId).emit('wordRevealed', {
+			word: norm,
+			originalText: wordText,
+			playerId: socket.id,
+			count: count,
+			allPlayersInWord: room.revealedWords[norm]
+		});
+	});
+
+	// Sistema de Veto (Votar en contra)
+	socket.on('castVeto', (roomId, targetPlayerId, wordIndex) => {
+		const room = rooms[roomId];
+		const vetoKey = `${targetPlayerId}_${wordIndex}`;
+		
+		if (!room.pendingVetoes[vetoKey]) room.pendingVetoes[vetoKey] = new Set();
+		room.pendingVetoes[vetoKey].add(socket.id);
+
+		const totalPlayers = Object.keys(room.players).length;
+		if (room.pendingVetoes[vetoKey].size > totalPlayers / 2) {
+			// VETO APROBADO: Ocultar palabra de nuevo
+			io.to(roomId).emit('wordVetoed', { playerId: targetPlayerId, wordIndex });
+			delete room.pendingVetoes[vetoKey];
+		}
+	});
+
+	socket.on('nextSpeaker', (roomId) => {
+		const room = rooms[roomId];
+		if (room && room.host === socket.id) {
+			room.activePlayerIndex++;
+			if (room.activePlayerIndex < room.playerOrder.length) {
+				io.to(roomId).emit('newActiveSpeaker', room.playerOrder[room.activePlayerIndex]);
 			}
 		}
 	});
