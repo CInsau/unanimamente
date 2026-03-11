@@ -70,6 +70,9 @@ socket.on('roomJoined', (data) => {
     showScreen('screen-lobby');
     document.getElementById('displayRoomId').innerText = myRoomId;
 
+    const shareContainer = document.getElementById('share-container');
+    const hostControls = document.getElementById('hostControls');
+
     if (isHost) {
         // 1. Mostramos los controles del host (botón empezar, etc.)
         if (hostControls) hostControls.style.display = 'block';
