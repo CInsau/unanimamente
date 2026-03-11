@@ -10,12 +10,22 @@ window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     invitedRoomId = urlParams.get('room');
 
+    const guestSection = document.getElementById('guest-join-section');
+    const standardSection = document.getElementById('standard-home-section');
+
     if (invitedRoomId) {
-        // Si hay un ID en la URL, ocultamos lo normal y mostramos solo el campo de nombre
-        document.getElementById('standard-home-section').style.display = 'none';
-        document.getElementById('guest-join-section').style.display = 'block';
+        // Caso: Viene por enlace de invitación
+        standardSection.style.display = 'none';
+        guestSection.style.display = 'block';
         document.getElementById('invited-room-id').innerText = invitedRoomId;
+    } else {
+        // Caso: Entrada normal a la web
+        standardSection.style.display = 'block';
+        guestSection.style.display = 'none';
     }
+    
+    // Aseguramos que la pantalla home sea la visible al cargar
+    showScreen('screen-home');
 };
 
 function normalizeText(text) {
