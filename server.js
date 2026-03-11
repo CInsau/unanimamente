@@ -163,15 +163,30 @@ io.on('connection', (socket) => {
     function processResults(roomId) {
 		const room = rooms[roomId];
 		room.state = 'revision';
-		room.activePlayerIndex = 0; // Quién está leyendo
-		room.playerOrder = Object.keys(room.players); // Orden de turnos
-		room.revealedWords = {}; // { palabra: [playerIds] }
-		room.pendingVetoes = {}; // { playerId_wordIndex: [votos] }
+		
+		// Obtenemos la lista fija de IDs de jugadores
+		const playerIds = Object.keys(room.players);
+		const numPlayers = playerIds.length;
+
+		// Calculamos quién debe empezar esta ronda (0 para la primera, 1 para la segunda, etc.)
+		// Usamos el módulo (%) para que si hay más rondas que jugadores, vuelva a empezar el ciclo
+		const startingIndex = (room.currentRound - 1) % numPlayers;
+
+		// Reordenamos el array de turnos para esta ronda
+		// Cogemos desde el que empieza hasta el final, y le pegamos el principio al final
+		room.playerOrder = [
+			...playerIds.slice(startingIndex),
+			...playerIds.slice(0, startingIndex)
+		];
+
+		room.activePlayerIndex = 0; // El índice local del turno de revisión (siempre empieza en 0 del nuevo array)
+		room.revealedWords = {};
+		room.pendingVetoes = {};
 
 		io.to(roomId).emit('startRevisionPhase', {
 			playerOrder: room.playerOrder,
-			allWords: room.words, // Enviamos todas las palabras (estarán ocultas por CSS)
-			activePlayerId: room.playerOrder[0]
+			allWords: room.words,
+			activePlayerId: room.playerOrder[0] // El ID del jugador que le toca empezar
 		});
 	}
 

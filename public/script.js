@@ -2,6 +2,7 @@ const socket = io();
 let myRoomId = '';
 let isHost = false;
 let gameTimer;
+let players_local_cache = {};
 
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -33,6 +34,7 @@ socket.on('roomJoined', (data) => {
 });
 
 socket.on('updatePlayers', (players) => {
+	players_local_cache = players;
     const list = document.getElementById('playerList');
     list.innerHTML = '';
     for (let id in players) {
@@ -433,8 +435,13 @@ socket.on('startRevisionPhase', (data) => {
     const container = document.getElementById('cards-container');
     container.innerHTML = '';
 
+    // Indicar qué número de ronda es y quién empieza
     const speakerName = document.getElementById('current-speaker-name');
-    speakerName.innerText = players_local_cache[data.activePlayerId]?.name || "Alguien";
+    const name = players_local_cache[data.activePlayerId]?.name || "Jugador";
+    speakerName.innerText = name;
+
+    // OPCIONAL: Añadir un aviso visual de "Empieza X"
+    alert("¡Fase de revisión! Esta ronda comienza leyendo: " + name);
 
     // Crear una tarjeta por cada jugador
     data.playerOrder.forEach(pid => {
@@ -522,4 +529,24 @@ socket.on('wordVetoed', (data) => {
     slot.className = 'word-slot hidden';
     slot.querySelector('.word-score').innerText = '';
     updateRealTimeScores();
+});
+
+function nextSpeaker() {
+    socket.emit('nextSpeaker', myRoomId);
+}
+
+function finishRevision() {
+    // Esta función llama al cálculo final que ya teníamos en el servidor
+    socket.emit('nextRound', myRoomId); 
+}
+
+// Escuchar cuando el host cambia de turno
+socket.on('newActiveSpeaker', (playerId) => {
+    const speakerName = document.getElementById('current-speaker-name');
+    speakerName.innerText = players_local_cache[playerId] ? players_local_cache[playerId].name : "Siguiente";
+    
+    // Opcional: Resaltar la tarjeta del que habla
+    document.querySelectorAll('.player-card').forEach(c => c.style.borderColor = "#ddd");
+    const activeCard = document.getElementById(`card-${playerId}`);
+    if(activeCard) activeCard.style.borderColor = "#ffc107"; // Color amarillo/dorado para el turno
 });
