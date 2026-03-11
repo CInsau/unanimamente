@@ -9,12 +9,6 @@
 </head>
 <body>
     <div id="app">
-        <div id="share-container" style="display:none; margin-top: 20px; padding: 10px; border: 1px dashed #ccc; border-radius: 8px;">
-			<p style="font-size: 0.8rem; margin-bottom: 5px;">Copia y envía este enlace a tu equipo:</p>
-			<input type="text" id="share-link" readonly style="width: 80%; padding: 5px; font-size: 0.8rem;">
-			<button onclick="copyLink()" style="padding: 5px 10px; font-size: 0.8rem;">Copiar</button>
-		</div>
-
 		<div id="screen-home" class="screen" style="display: block;">
 			<div id="game-logo-container">
 				<img src="logo.png" alt="Unánima-mente" class="game-logo">
@@ -29,14 +23,21 @@
 			<div id="standard-home-section" style="display:none;">
 				<input type="text" id="playerName" placeholder="Tu nombre...">
 				<button onclick="createRoom()" class="btn-primary">Crear Nueva Sala</button>
-				<hr>
+				<!--hr>
 				<input type="text" id="roomId" placeholder="Código de sala...">
-				<button onclick="joinRoom()">Unirse Manualmente</button>
+				<button onclick="joinRoom()">Unirse Manualmente</button-->
 			</div>
 		</div>
 
         <div id="screen-lobby" class="screen">
             <h2>Sala: <span id="displayRoomId"></span></h2>
+
+			<div id="share-container" style="display:none; margin-top: 20px; padding: 10px; border: 1px dashed #ccc; border-radius: 8px;">
+				<p style="font-size: 0.8rem; margin-bottom: 5px;">Copia y envía este enlace a tu equipo:</p>
+				<input type="text" id="share-link" readonly style="width: 80%; padding: 5px; font-size: 0.8rem;">
+				<button onclick="copyLink()" style="padding: 5px 10px; font-size: 0.8rem;">Copiar</button>
+			</div>
+
             <h3>Jugadores conectados:</h3>
             <ul id="playerList"></ul>
             

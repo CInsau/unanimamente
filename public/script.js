@@ -71,14 +71,22 @@ socket.on('roomJoined', (data) => {
     document.getElementById('displayRoomId').innerText = myRoomId;
 
     if (isHost) {
-        document.getElementById('hostControls').style.display = 'block';
-        // Generar enlace compartido
-        const shareContainer = document.getElementById('share-container');
-        const shareInput = document.getElementById('share-link');
-        const fullLink = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
-        
-        shareInput.value = fullLink;
-        shareContainer.style.display = 'block';
+        // 1. Mostramos los controles del host (botón empezar, etc.)
+        if (hostControls) hostControls.style.display = 'block';
+
+        // 2. Generamos y mostramos el enlace de invitación
+        if (shareContainer) {
+            const shareInput = document.getElementById('share-link');
+            // Construimos la URL: Origen (https://tuweb.com) + Path (/) + ?room=ABCD
+            const fullLink = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
+            
+            shareInput.value = fullLink;
+            shareContainer.style.display = 'block'; // <--- Aquí es donde se hace visible
+        }
+    } else {
+        // Si no somos el host, ocultamos estas secciones por si acaso
+        if (hostControls) hostControls.style.display = 'none';
+        if (shareContainer) shareContainer.style.display = 'none';
     }
 });
 
@@ -86,9 +94,16 @@ socket.on('roomJoined', (data) => {
 function copyLink() {
     const copyText = document.getElementById("share-link");
     copyText.select();
-    copyText.setSelectionRange(0, 99999); // Para móviles
-    navigator.clipboard.writeText(copyText.value);
-    alert("¡Enlace copiado! Pásalo por el chat de Teams.");
+    copyText.setSelectionRange(0, 99999); // Compatibilidad móvil
+    
+    try {
+        navigator.clipboard.writeText(copyText.value);
+        alert("¡Enlace copiado! Pégalo en Teams o WhatsApp.");
+    } catch (err) {
+        // Fallback para navegadores antiguos
+        document.execCommand("copy");
+        alert("Enlace copiado.");
+    }
 }
 
 socket.on('updatePlayers', (players) => {
