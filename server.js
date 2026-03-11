@@ -27,26 +27,35 @@ const themes = [
 
 io.on('connection', (socket) => {
     // Unirse o crear sala
-    socket.on('joinRoom', ({ roomId, playerName }) => {
-        socket.join(roomId);
-        if (!rooms[roomId]) {
-            rooms[roomId] = {
-                host: socket.id,
-                players: {},
-                settings: { rounds: 3, time: 60 },
-                currentRound: 0,
-                state: 'lobby',
-                words: {}, // palabras de la ronda actual
-                scores: {},
+    socket.on('joinRoom', (roomId, playerName) => {
+		// 1. Si la sala no existe, la creamos y asignamos al Host
+		if (!rooms[roomId]) {
+			rooms[roomId] = {
+				host: socket.id, // <--- Aquí guardamos el ID del creador
+				players: {},
+				settings: { rounds: 3, time: 60 },
+				currentRound: 0,
+				state: 'lobby',
+				words: {},
+				scores: {},
 				usedThemes: []
-            };
-        }
-        rooms[roomId].players[socket.id] = { name: playerName, ready: false };
-        rooms[roomId].scores[socket.id] = rooms[roomId].scores[socket.id] || 0;
-        
-        io.to(roomId).emit('updatePlayers', rooms[roomId].players);
-        socket.emit('roomJoined', { roomId, isHost: rooms[roomId].host === socket.id });
-    });
+			};
+			console.log(`Sala ${roomId} creada por ${socket.id}`);
+		}
+	
+		// 2. Añadimos al jugador (ya sea host o invitado)
+		rooms[roomId].players[socket.id] = { name: playerName, ready: false };
+		rooms[roomId].scores[socket.id] = 0;
+	
+		// 3. ENVIAR EL EVENTO (Asegúrate de que 'hostId' apunta a rooms[roomId].host)
+		socket.emit('roomJoined', { 
+			roomId: roomId, 
+			hostId: rooms[roomId].host // <--- IMPORTANTE: que no sea null
+		});
+	
+		// Notificamos al resto de la sala
+		io.to(roomId).emit('updatePlayers', rooms[roomId].players);
+	});
 
     // Iniciar partida
     socket.on('startGame', (roomId, settings) => {
