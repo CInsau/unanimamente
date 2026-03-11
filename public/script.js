@@ -1,8 +1,39 @@
+let invitedRoomId = null;
 const socket = io();
 let myRoomId = '';
 let isHost = false;
 let gameTimer;
 let players_local_cache = {};
+
+// Al cargar la página, comprobar si hay una sala en la URL
+window.onload = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    invitedRoomId = urlParams.get('room');
+
+    if (invitedRoomId) {
+        // Si hay un ID en la URL, ocultamos lo normal y mostramos solo el campo de nombre
+        document.getElementById('standard-home-section').style.display = 'none';
+        document.getElementById('guest-join-section').style.display = 'block';
+        document.getElementById('invited-room-id').innerText = invitedRoomId;
+    }
+};
+
+function normalizeText(text) {
+    return text.toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // Quita tildes y diéresis
+}
+
+// Función para el invitado que entra por enlace
+function joinInvitedRoom() {
+    const name = document.getElementById('playerNameGuest').value.trim();
+    if (name && invitedRoomId) {
+        socket.emit('joinRoom', invitedRoomId, name);
+    } else {
+        alert("Por favor, introduce tu nombre.");
+    }
+}
 
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -24,14 +55,31 @@ function joinRoom() {
 }
 
 socket.on('roomJoined', (data) => {
-    isHost = data.isHost;
-    document.getElementById('displayRoomId').innerText = data.roomId;
+    myRoomId = data.roomId;
+    isHost = (socket.id === data.hostId);
+    showScreen('screen-lobby');
+    document.getElementById('displayRoomId').innerText = myRoomId;
+
     if (isHost) {
         document.getElementById('hostControls').style.display = 'block';
-        document.getElementById('waitMessage').style.display = 'none';
+        // Generar enlace compartido
+        const shareContainer = document.getElementById('share-container');
+        const shareInput = document.getElementById('share-link');
+        const fullLink = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
+        
+        shareInput.value = fullLink;
+        shareContainer.style.display = 'block';
     }
-    showScreen('screen-lobby');
 });
+
+// Función para copiar el enlace al portapapeles
+function copyLink() {
+    const copyText = document.getElementById("share-link");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // Para móviles
+    navigator.clipboard.writeText(copyText.value);
+    alert("¡Enlace copiado! Pásalo por el chat de Teams.");
+}
 
 socket.on('updatePlayers', (players) => {
 	players_local_cache = players;
@@ -451,8 +499,9 @@ socket.on('startRevisionPhase', (data) => {
         
         let wordsHTML = '';
         data.allWords[pid].forEach((word, index) => {
+            const isSecret = (pid !== socket.id) ? 'hidden' : '';
             wordsHTML += `
-                <div class="word-slot hidden" id="slot-${pid}-${index}" 
+                <div class="word-slot ${isSecret}" id="slot-${pid}-${index}" 
                      onclick="handleWordClick('${pid}', ${index}, '${word}')">
                     <span class="word-text">${word}</span>
                     <span class="word-score"></span>

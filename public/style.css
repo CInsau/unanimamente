@@ -19,6 +19,23 @@ body {
     text-align: center;
 }
 
+#share-link {
+    background: #f1f1f1;
+    border: 1px solid #ccc;
+    color: #555;
+    cursor: default;
+    outline: none;
+}
+
+#guest-join-section h3 {
+    margin-bottom: 20px;
+}
+
+#guest-join-section input {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
 .screen { display: none; }
 .screen.active { display: block; }
 
@@ -281,3 +298,16 @@ input:disabled {
 .word-slot.matched { background-color: #e8f5e9; color: #2e7d32; font-weight: bold; } /* Verde */
 
 .word-score { float: right; font-size: 0.8rem; }
+
+/* Palabras en MI tarjeta que aún no he clicado */
+.my-card .word-slot:not(.matched):not(.solo) {
+    background-color: #fff;
+    border: 1px dashed #4facfe;
+    color: #4facfe;
+}
+
+/* Evitar que mis propias palabras salgan borrosas */
+.my-card .word-slot.hidden .word-text {
+    filter: none !important;
+    opacity: 1 !important;
+}
