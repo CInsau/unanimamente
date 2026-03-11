@@ -37,7 +37,8 @@ io.on('connection', (socket) => {
                 currentRound: 0,
                 state: 'lobby',
                 words: {}, // palabras de la ronda actual
-                scores: {}
+                scores: {},
+				usedThemes: []
             };
         }
         rooms[roomId].players[socket.id] = { name: playerName, ready: false };
@@ -60,14 +61,29 @@ io.on('connection', (socket) => {
     function startRound(roomId) {
 		const room = rooms[roomId];
 		room.state = 'voting_theme';
-		room.themeVotes = {}; // Guardar votos: {socketId: temaIndex}
-		
-		// Seleccionar 2 temas al azar
-		const option1 = themes[Math.floor(Math.random() * themes.length)];
-		const option2 = themes[Math.floor(Math.random() * themes.length)];
+		room.themeVotes = {};
+
+		// 1. Filtrar los temas que NO han sido usados todavía
+		const availableThemes = themes.filter(t => !room.usedThemes.includes(t));
+
+		// 2. Si por alguna razón nos quedamos sin temas (partida larguísima), reseteamos la lista
+		const pool = availableThemes.length >= 2 ? availableThemes : themes;
+
+		// 3. Seleccionar 2 temas al azar del grupo de disponibles
+		// Usamos un pequeño truco de desordenar el array (shuffle) y coger los 2 primeros
+		const shuffled = pool.sort(() => 0.5 - Math.random());
+		const option1 = shuffled[0];
+		const option2 = shuffled[1];
+
 		room.currentOptions = [option1, option2];
 
-		io.to(roomId).emit('startThemeVote', { options: room.currentOptions });
+		// 4. Añadimos AMBOS temas a la lista de usados para que no vuelvan a salir como opción
+		room.usedThemes.push(option1, option2);
+
+		io.to(roomId).emit('startThemeVote', { 
+			options: room.currentOptions,
+			total_players_info: Object.keys(room.players).length // Aprovechamos para el contador x/total
+		});
 	}
 
 	// Escuchar los votos de los temas
@@ -76,8 +92,16 @@ io.on('connection', (socket) => {
 		if (room && room.state === 'voting_theme') {
 			room.themeVotes[socket.id] = optionIndex;
 			
-			// Si todos han votado, decidir tema
-			if (Object.keys(room.themeVotes).length === Object.keys(room.players).length) {
+			const totalPlayers = Object.keys(room.players).length;
+			const votedCount = Object.keys(room.themeVotes).length;
+
+			// Avisamos a todos de cuántos han votado
+			io.to(roomId).emit('updateThemeVoteProgress', { 
+				voted: votedCount, 
+				total: totalPlayers 
+			});
+			
+			if (votedCount === totalPlayers) {
 				decideTheme(roomId);
 			}
 		}
@@ -113,14 +137,22 @@ io.on('connection', (socket) => {
     // Recibir palabras
     socket.on('submitWords', (roomId, wordsArray) => {
 		const room = rooms[roomId];
-		if (room) {
-			// Normalizamos cada palabra antes de guardarla
-			room.words[socket.id] = wordsArray
-				.map(w => normalizeText(w)) // <--- CAMBIO AQUÍ
-				.filter(w => w); // Quita vacíos
+		if (room && room.players[socket.id]) {
+			room.words[socket.id] = wordsArray.map(w => normalizeText(w)).filter(w => w);
+			room.players[socket.id].ready = true;
+			
+			const totalPlayers = Object.keys(room.players).length;
+			const readyCount = Object.values(room.players).filter(p => p.ready).length;
 
-			// Si todos enviaron, ir a resultados
-			if (Object.keys(room.words).length === Object.keys(room.players).length) {
+			// Avisamos a todos del progreso de la ronda
+			io.to(roomId).emit('updateRoundProgress', { 
+				ready: readyCount, 
+				total: totalPlayers,
+				playerId: socket.id
+			});
+
+			if (readyCount === totalPlayers) {
+				for (let id in room.players) room.players[id].ready = false;
 				processResults(roomId);
 			}
 		}
@@ -221,6 +253,7 @@ io.on('connection', (socket) => {
             room.state = 'lobby';
             room.currentRound = 0;
             room.words = {};
+			room.usedThemes = [];
             // Mantener los jugadores y sus puntuaciones totales si quieres, 
             // o resetear puntuaciones a 0:
             for (let pid in room.scores) room.scores[pid] = 0;

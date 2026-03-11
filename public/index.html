@@ -38,6 +38,7 @@
         <div id="screen-game" class="screen">
 			<div id="theme-voting-section">
 				<h3>Vota el tema de esta ronda:</h3>
+				<p class="progress-counter">Votos: <span id="theme-vote-count">0 / 0</span></p>
 				<div id="theme-options-container">
 					<button id="theme-opt-0" class="btn-theme" onclick="voteTheme(0)"></button>
 					<button id="theme-opt-1" class="btn-theme" onclick="voteTheme(1)"></button>
@@ -47,6 +48,7 @@
 
 			<div id="game-play-section" style="display:none;">
 				<h2 id="themeDisplay">Tema...</h2>
+				<p class="progress-counter">Jugadores listos: <span id="round-ready-count">0 / 0</span></p>
 				<h3 class="timer">Tiempo: <span id="timeRemaining">60</span>s</h3>
 				<div id="wordInputs"></div>
 				<button onclick="submitWords()" id="btnSubmit">Hecho</button>

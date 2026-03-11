@@ -85,6 +85,8 @@ socket.on('roundStarted', (data) => {
             submitWords();
         }
     }, 1000);
+	
+	document.getElementById('round-ready-count').innerText = `0 / ${data.total_players_info || '?'}`;
 });
 
 function submitWords() {
@@ -307,6 +309,9 @@ socket.on('startThemeVote', (data) => {
     document.getElementById('theme-opt-1').innerText = data.options[1];
     document.getElementById('theme-opt-0').disabled = false;
     document.getElementById('theme-opt-1').disabled = false;
+	
+	// Actualizar el contador con el total que envía el server
+    document.getElementById('theme-vote-count').innerText = `0 / ${data.total_players_info}`;
 });
 
 function voteTheme(index) {
@@ -319,40 +324,104 @@ function voteTheme(index) {
 // Esta es la función que faltaba y causaba el error
 function renderScoresList(data) {
     const list = document.getElementById('scoresList');
-    list.innerHTML = ''; // Limpiar lista anterior
+    list.innerHTML = '';
+    
+    // Encontrar la puntuación máxima para calcular el porcentaje de las barras
+    const maxScore = Math.max(...Object.values(data.totalScores), 1);
 
-    // 1. Título de la ronda
-    const title = document.createElement('h3');
-    title.innerText = "Resumen de aciertos:";
-    list.appendChild(title);
-
-    // 2. Ordenar jugadores por quién ha ganado más puntos en ESTA ronda
-    const sortedIds = Object.keys(data.players).sort((a, b) => 
-        (data.roundScores[b] || 0) - (data.roundScores[a] || 0)
-    );
-
-    // 3. Crear los elementos de la lista
-    sortedIds.forEach(id => {
+    // 1. Pintar la lista inicialmente (manteniendo el orden que venía de la ronda anterior)
+    const playerIds = Object.keys(data.players);
+    
+    playerIds.forEach(id => {
         const rs = data.roundScores[id] || 0;
         const ts = data.totalScores[id] || 0;
         const name = data.players[id].name;
+        const percentage = (ts / (maxScore * 1.2)) * 100; // 1.2 para dejar margen visual
 
         const li = document.createElement('li');
-        li.style.display = "flex";
-        li.style.justifyContent = "space-between";
-        li.style.padding = "10px";
-        li.style.margin = "5px 0";
-        li.style.backgroundColor = "#f8f9fa";
-        li.style.borderRadius = "8px";
-        li.style.borderLeft = rs > 0 ? "5px solid #28a745" : "5px solid #ccc";
+        li.className = 'score-item';
+        li.id = `score-card-${id}`; // ID para poder moverlo luego
+        li.setAttribute('data-total', ts); // Guardamos el valor para ordenar
 
         li.innerHTML = `
-            <span><strong>${name}</strong></span>
-            <span>
-                <span style="color: #28a745; font-weight: bold;">+${rs} pts</span> 
-                <small style="color: #666; margin-left: 10px;">(Total: ${ts})</small>
-            </span>
+            <div class="score-info">
+                <span><strong>${name}</strong></span>
+                <div>
+                    ${rs > 0 ? `<span class="round-gain-badge">+${rs}</span>` : ''}
+                    <span style="margin-left:10px; font-weight:bold;">${ts} pts</span>
+                </div>
+            </div>
+            <div class="progress-bar-container">
+                <div id="bar-${id}" class="progress-bar-fill"></div>
+            </div>
         `;
         list.appendChild(li);
+
+        // Animamos la barra ligeramente después de renderizar
+        setTimeout(() => {
+            const bar = document.getElementById(`bar-${id}`);
+            if(bar) bar.style.width = percentage + '%';
+        }, 100);
+    });
+
+    // 2. Reordenar la lista tras 2.5 segundos
+    setTimeout(() => {
+        reorderScoreList(list);
+    }, 2500);
+}
+
+function reorderScoreList(listElement) {
+    const items = Array.from(listElement.children);
+    
+    // Ordenar de mayor a menor puntuación
+    items.sort((a, b) => {
+        return parseInt(b.getAttribute('data-total')) - parseInt(a.getAttribute('data-total'));
+    });
+
+    // Reordenar visualmente
+    items.forEach((item, index) => {
+        listElement.appendChild(item);
+        
+        // Limpiar clases de medallas previas si las hubiera
+        item.classList.remove('gold-winner', 'silver-winner', 'bronze-winner', 'reordered');
+        
+        // Quitar medallas antiguas del HTML interno
+        const oldMedal = item.querySelector('.medal-icon');
+        if (oldMedal) oldMedal.remove();
+
+        // Asignar nuevas medallas según la posición (index)
+        const nameSpan = item.querySelector('strong');
+        let medal = "";
+
+        if (index === 0) {
+            medal = '<span class="medal-icon">🥇</span>';
+            item.classList.add('gold-winner', 'reordered');
+        } else if (index === 1) {
+            medal = '<span class="medal-icon">🥈</span>';
+            item.classList.add('silver-winner');
+        } else if (index === 2) {
+            medal = '<span class="medal-icon">🥉</span>';
+            item.classList.add('bronze-winner');
+        }
+
+        if (medal !== "") {
+            nameSpan.insertAdjacentHTML('beforebegin', medal);
+        }
     });
 }
+
+// Progreso de votación de temas
+socket.on('updateThemeVoteProgress', (data) => {
+    document.getElementById('theme-vote-count').innerText = `${data.voted} / ${data.total}`;
+});
+
+// Progreso de palabras terminadas
+socket.on('updateRoundProgress', (data) => {
+    document.getElementById('round-ready-count').innerText = `${data.ready} / ${data.total}`;
+    
+    // Aprovechamos para marcar el ✅ en la lista que ya teníamos
+    const el = document.getElementById(`player-${data.playerId}`);
+    if (el && !el.innerText.includes('✅')) {
+        el.innerText += ' ✅';
+    }
+});
