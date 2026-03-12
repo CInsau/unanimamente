@@ -37,8 +37,14 @@ function normalizeText(text) {
 
 // Función para el invitado que entra por enlace
 function joinInvitedRoom() {
-    const name = document.getElementById('playerNameGuest').value.trim();
+    const nameInput = document.getElementById('playerNameGuest').value.trim();
+    const name = nameInput.value.trim();
     if (name && invitedRoomId) {
+        // Bloqueamos el botón y el input para evitar doble click
+        nameInput.disabled = true;
+        document.querySelector('#guest-join-section button').disabled = true;
+        
+        // Enviamos la conexión
         socket.emit('joinRoom', invitedRoomId, name);
     } else {
         alert("Por favor, introduce tu nombre.");
