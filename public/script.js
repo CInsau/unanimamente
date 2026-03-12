@@ -591,7 +591,7 @@ socket.on('startRevisionPhase', (data) => {
     if (isHost) document.getElementById('host-revision-controls').style.display = 'block';
 });
 
-function handleWordClick(pid, index, wordText) {
+function handleWordClick(pid, index, word) {
     // REGLA 1: Solo puedes pinchar en TUS propias tarjetas
     if (pid !== socket.id) {
         // Si pinchas en la de otro, es para VETAR
