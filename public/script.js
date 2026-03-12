@@ -610,7 +610,7 @@ function handleWordClick(pid, index, wordText) {
         roomId: myRoomId,
         playerId: pid,
         wordIndex: index,
-        word: word
+        word: wordText
     });
 }
 
@@ -741,12 +741,18 @@ function fillRandomWords() {
         "Cucharo", "Honro", "Nebera", "Grifos", "Sarten"
     ];
 
+    // 1. Desordenamos la lista (Algoritmo Fisher-Yates)
+    const shuffled = [...testWords].sort(() => Math.random() - 0.5);
+
+    // 2. Seleccionamos los inputs de la pantalla actual
     const inputs = document.querySelectorAll('#wordInputs input');
     
-    inputs.forEach(input => {
-        // Selecciona una palabra al azar de la lista
-        const randomIndex = Math.floor(Math.random() * testWords.length);
-        input.value = testWords[randomIndex];
+    inputs.forEach((input, index) => {
+        // 3. Asignamos una palabra única de la lista desordenada
+        // Como solo hay 8 inputs y 20 palabras, no habrá repetidas para el jugador
+        if (shuffled[index]) {
+            input.value = shuffled[index];
+        }
     });
 
     console.log("Campos rellenados con palabras de prueba.");
