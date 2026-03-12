@@ -63,14 +63,21 @@ io.on('connection', (socket) => {
 	});
 
     // Iniciar partida
-    socket.on('startGame', (roomId, settings) => {
-        const room = rooms[roomId];
-        if (room && room.host === socket.id) {
-            room.settings = settings;
-            room.currentRound = 1;
-            startRound(roomId);
-        }
-    });
+	socket.on('startGame', (roomId, settings) => {
+		// Forzamos que el roomId sea string por si acaso
+		const id = String(roomId);
+		const room = rooms[id];
+		
+		if (room && room.host === socket.id) {
+			// Guardamos la configuración enviada por el host
+			room.settings = settings;
+			room.currentRound = 1;
+			console.log(`Partida iniciada en sala ${id} con configuración:`, settings);
+			startRound(id);
+		} else {
+			console.log("Error al iniciar: sala no encontrada o no es el host", id);
+		}
+	});
 
     function startRound(roomId) {
 		const room = rooms[roomId];

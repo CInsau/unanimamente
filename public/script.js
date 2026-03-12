@@ -166,10 +166,15 @@ socket.on('playerReady', (playerId) => {
 function startGame() {
     console.log("Intentando empezar partida en sala:", myRoomId);
     if (isHost && myRoomId) {
-        // Enviamos también la configuración al servidor
-        const rounds = document.getElementById('roundsInput').value;
-        const time = document.getElementById('timeInput').value;
-        socket.emit('startGame', { roomId: myRoomId, rounds, time });
+        // Extraemos los valores de los inputs
+        const rounds = parseInt(document.getElementById('roundsInput').value);
+        const time = parseInt(document.getElementById('timeInput').value);
+        
+        // CREAMOS EL OBJETO DE CONFIGURACIÓN
+        const settings = { rounds: rounds, time: time };
+        
+        // ENVIAMOS: primer parámetro el ID (string), segundo parámetro el objeto
+        socket.emit('startGame', myRoomId, settings);
     }
 }
 
