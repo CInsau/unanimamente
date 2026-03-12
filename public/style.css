@@ -323,3 +323,22 @@ input:disabled {
         flex-direction: row;
     }
 }
+
+/* Resaltar la tarjeta del jugador que tiene el turno */
+.player-card.active-speaker {
+    border: 3px solid #ffc107;
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.5);
+    transform: scale(1.02);
+}
+
+.word-slot.vetoed {
+    border: 2px solid #ff4d4d;
+    background-color: #fff5f5;
+}
+
+/* Indicador de votos de veto (opcional) */
+.veto-count {
+    font-size: 0.7rem;
+    color: red;
+    font-weight: bold;
+}

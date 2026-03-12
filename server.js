@@ -241,18 +241,29 @@ io.on('connection', (socket) => {
 	});
 
 	// Sistema de Veto (Votar en contra)
-	socket.on('castVeto', (roomId, targetPlayerId, wordIndex) => {
+	socket.on('castVeto', (data) => {
+		const { roomId, playerId, wordIndex } = data;
 		const room = rooms[roomId];
-		const vetoKey = `${targetPlayerId}_${wordIndex}`;
-		
-		if (!room.pendingVetoes[vetoKey]) room.pendingVetoes[vetoKey] = new Set();
-		room.pendingVetoes[vetoKey].add(socket.id);
-
-		const totalPlayers = Object.keys(room.players).length;
-		if (room.pendingVetoes[vetoKey].size > totalPlayers / 2) {
-			// VETO APROBADO: Ocultar palabra de nuevo
-			io.to(roomId).emit('wordVetoed', { playerId: targetPlayerId, wordIndex });
-			delete room.pendingVetoes[vetoKey];
+		if (!room) return;
+	
+		const wordKey = `${playerId}-${wordIndex}`;
+		if (!room.vetos) room.vetos = {};
+		if (!room.vetos[wordKey]) room.vetos[wordKey] = new Set();
+	
+		room.vetos[wordKey].add(socket.id);
+	
+		const numPlayers = Object.keys(room.players).length;
+		// Si más de la mitad votan veto
+		if (room.vetos[wordKey].size > numPlayers / 2) {
+			io.to(roomId).emit('wordVetoed', { playerId, wordIndex });
+			delete room.vetos[wordKey];
+		} else {
+			// Opcional: Avisar cuántos votos van
+			io.to(roomId).emit('vetoUpdate', { 
+				playerId, 
+				wordIndex, 
+				count: room.vetos[wordKey].size 
+			});
 		}
 	});
 

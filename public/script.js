@@ -592,124 +592,81 @@ socket.on('startRevisionPhase', (data) => {
 });
 
 function handleWordClick(pid, index, wordText) {
-    // 1. Si es MI palabra, la revelo
-    if (pid === socket.id) {
-        socket.emit('revealWord', myRoomId, wordText);
-    } 
-    // 2. Si es la palabra de OTRO y ya está revelada, puedo votar VETO
-    else {
+    // REGLA 1: Solo puedes pinchar en TUS propias tarjetas
+    if (pid !== socket.id) {
+        // Si pinchas en la de otro, es para VETAR
         const slot = document.getElementById(`slot-${pid}-${index}`);
         if (!slot.classList.contains('hidden')) {
-            if(confirm("¿Votar para anular esta palabra?")) {
-                socket.emit('castVeto', myRoomId, pid, index);
+            if (confirm(`¿Votar para vetar la palabra "${word}" de este jugador?`)) {
+                socket.emit('castVeto', { roomId: myRoomId, playerId: pid, wordIndex: index });
             }
         }
+        return;
     }
 
-    socket.emit('wordClicked', {
-        roomId: myRoomId,
-        playerId: pid,
-        wordIndex: index,
-        word: wordText
-    });
+    // REGLA 2: Si es tu palabra y está oculta, la revelas
+    const slot = document.getElementById(`slot-${pid}-${index}`);
+    if (slot.classList.contains('hidden')) {
+        socket.emit('wordClicked', {
+            roomId: myRoomId,
+            playerId: pid,
+            wordIndex: index,
+            word: word
+        });
+    }
 }
 
 socket.on('wordRevealed', (data) => {
-    // Buscamos en todas las tarjetas quién tiene esta palabra
-    // Nota: Esto asume que comparamos de forma normalizada
-    /*const allSlots = document.querySelectorAll('.word-slot');
-    
-    allSlots.forEach(slot => {
-        const slotText = slot.querySelector('.word-text').innerText;
-        if (normalizeText(slotText) === data.word) {
-            slot.classList.remove('hidden');
-            
-            // Actualizar color y puntos
-            if (data.count > 1) {
-                slot.className = 'word-slot matched';
-                slot.querySelector('.word-score').innerText = `(${data.count})`;
-            } else {
-                slot.className = 'word-slot solo';
-                slot.querySelector('.word-score').innerText = '(0)';
-            }
-        }
-    });
-    updateRealTimeScores();*/
-
     const slot = document.getElementById(`slot-${data.playerId}-${data.wordIndex}`);
     if (slot) {
         slot.classList.remove('hidden');
-        // IMPORTANTE: Después de revelar, recalculamos todo el tablero
+        slot.classList.remove('vetoed');
+        // REGLA 3: Al revelar una, recalculamos puntos para todos
         updateRealTimeScores();
     }
 });
 
 function updateRealTimeScores() {
-    /*// Recalcula los puntos visibles basándose en las clases 'matched'
-    const players = Object.keys(players_local_cache);
-    players.forEach(pid => {
-        const matchedWords = document.querySelectorAll(`#card-${pid} .word-slot.matched`).length;
-        // Según tu regla: X puntos donde X es el total de personas
-        let total = 0;
-        document.querySelectorAll(`#card-${pid} .word-slot.matched`).forEach(slot => {
-            const scoreText = slot.querySelector('.word-score').innerText;
-            total += parseInt(scoreText.replace(/\(|\)/g, '')) || 0;
-        });
-        document.getElementById(`points-${pid}`).innerText = total;
-    });*/
+    const allVisible = document.querySelectorAll('.word-slot:not(.hidden)');
+    const groups = {};
 
-    const allVisibleSlots = document.querySelectorAll('.word-slot:not(.hidden)');
-    const wordGroups = {};
-
-    // 1. Agrupar palabras normalizadas que están visibles
-    allVisibleSlots.forEach(slot => {
+    // Normalizar y agrupar
+    allVisible.forEach(slot => {
         const text = normalizeText(slot.querySelector('.word-text').innerText);
-        if (!wordGroups[text]) wordGroups[text] = [];
-        wordGroups[text].push(slot);
+        if (!groups[text]) groups[text] = [];
+        groups[text].push(slot);
     });
 
-    // 2. Asignar puntos basados en el tamaño del grupo
-    for (const text in wordGroups) {
-        const slots = wordGroups[text];
-        const count = slots.length;
+    // Aplicar puntos (X puntos = X personas con la misma palabra)
+    // Borramos clases previas
+    document.querySelectorAll('.word-slot').forEach(s => {
+        s.classList.remove('matched', 'solo');
+        s.querySelector('.word-score').innerText = '';
+    });
 
+    Object.values(groups).forEach(slots => {
+        const count = slots.length;
         slots.forEach(slot => {
             const scoreSpan = slot.querySelector('.word-score');
-            
             if (count > 1) {
-                // Coincidencia: Verde y X puntos
-                slot.classList.remove('solo');
                 slot.classList.add('matched');
                 scoreSpan.innerText = `(${count})`;
             } else {
-                // Única: Rojo y 0 puntos
-                slot.classList.remove('matched');
                 slot.classList.add('solo');
                 scoreSpan.innerText = '(0)';
             }
         });
-    }
-
-    // 3. Actualizar el "Total Ronda" en cada tarjeta de jugador
-    document.querySelectorAll('.player-card').forEach(card => {
-        const pid = card.id.replace('card-', '');
-        let totalPoints = 0;
-        
-        card.querySelectorAll('.word-slot.matched .word-score').forEach(score => {
-            const val = parseInt(score.innerText.replace(/\(|\)/g, ''));
-            totalPoints += val;
-        });
-
-        const pointsDisplay = document.getElementById(`points-${pid}`);
-        if (pointsDisplay) pointsDisplay.innerText = totalPoints;
     });
 }
 
 socket.on('wordVetoed', (data) => {
     const slot = document.getElementById(`slot-${data.playerId}-${data.wordIndex}`);
-    slot.className = 'word-slot hidden';
-    slot.querySelector('.word-score').innerText = '';
-    updateRealTimeScores();
+    if (slot) {
+        slot.classList.add('hidden');
+        slot.classList.add('vetoed');
+        alert("¡Palabra vetada por mayoría!");
+        updateRealTimeScores();
+    }
 });
 
 function nextSpeaker() {
