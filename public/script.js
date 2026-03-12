@@ -72,14 +72,14 @@ function createRoom() {
     const name = document.getElementById('playerName').value;
     if (!name) return alert("Pon tu nombre");
     myRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-    socket.emit('joinRoom', { roomId: myRoomId, playerName: name });
+    socket.emit('joinRoom', myRoomId, name);
 }
 
 function joinRoom() {
     const name = document.getElementById('playerName').value;
     myRoomId = document.getElementById('joinRoomId').value.toUpperCase();
     if (!name || !myRoomId) return alert("Falta nombre o sala");
-    socket.emit('joinRoom', { roomId: myRoomId, playerName: name });
+    socket.emit('joinRoom', myRoomId, name);
 }
 
 socket.on('roomJoined', (data) => {
@@ -164,9 +164,13 @@ socket.on('playerReady', (playerId) => {
 });
 
 function startGame() {
-    const rounds = document.getElementById('configRounds').value;
-    const time = document.getElementById('configTime').value;
-    socket.emit('startGame', myRoomId, { rounds, time });
+    console.log("Intentando empezar partida en sala:", myRoomId);
+    if (isHost && myRoomId) {
+        // Enviamos también la configuración al servidor
+        const rounds = document.getElementById('roundsInput').value;
+        const time = document.getElementById('timeInput').value;
+        socket.emit('startGame', { roomId: myRoomId, rounds, time });
+    }
 }
 
 socket.on('roundStarted', (data) => {
