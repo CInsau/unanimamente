@@ -83,31 +83,37 @@ function joinRoom() {
 }
 
 socket.on('roomJoined', (data) => {
-    myRoomId = data.roomId.roomId;
+    // 1. Extraer datos correctamente
+    myRoomId = data.roomId; 
     isHost = (socket.id === data.hostId);
+    
+    // 2. Cambiar de pantalla y limpiar rastros de la anterior
     showScreen('screen-lobby');
-    document.getElementById('displayRoomId').innerText = myRoomId;
+    document.getElementById('guest-join-section').style.display = 'none';
+    document.getElementById('standard-home-section').style.display = 'none';
 
+    // 3. Mostrar el ID de la sala (Evitar el undefined)
+    const displayId = document.getElementById('displayRoomId');
+    if (displayId) displayId.innerText = myRoomId;
+
+    // 4. Lógica Diferenciada: Host vs Invitado
     const shareContainer = document.getElementById('share-container');
     const hostControls = document.getElementById('hostControls');
+    const guestWaitMessage = document.getElementById('guest-wait-message'); // Necesitarás este ID en el HTML
 
     if (isHost) {
-        // 1. Mostramos los controles del host (botón empezar, etc.)
-        if (hostControls) hostControls.style.display = 'block';
-
-        // 2. Generamos y mostramos el enlace de invitación
+        // El Host ve el enlace, el botón y la configuración
         if (shareContainer) {
-            const shareInput = document.getElementById('share-link');
-            // Construimos la URL: Origen (https://tuweb.com) + Path (/) + ?room=ABCD
-            const fullLink = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
-            
-            shareInput.value = fullLink;
-            shareContainer.style.display = 'block'; // <--- Aquí es donde se hace visible
+            shareContainer.style.display = 'block';
+            document.getElementById('share-link').value = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
         }
+        if (hostControls) hostControls.style.display = 'block';
+        if (guestWaitMessage) guestWaitMessage.style.display = 'none';
     } else {
-        // Si no somos el host, ocultamos estas secciones por si acaso
-        if (hostControls) hostControls.style.display = 'none';
+        // El Invitado NO ve el enlace, NI el botón, NI la configuración
         if (shareContainer) shareContainer.style.display = 'none';
+        if (hostControls) hostControls.style.display = 'none';
+        if (guestWaitMessage) guestWaitMessage.style.display = 'block';
     }
 });
 
