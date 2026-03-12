@@ -83,39 +83,50 @@ function joinRoom() {
 }
 
 socket.on('roomJoined', (data) => {
-    // 1. Extraer datos correctamente
-    myRoomId = data.roomId; 
+    console.log("DEBUG - Datos recibidos:", data);
+
+    // Si data.roomId es un objeto, intentamos sacar el ID. Si es string, lo usamos.
+    if (typeof data.roomId === 'object' && data.roomId !== null) {
+        // Esto es un parche por si el servidor manda el objeto 'room' por error
+        myRoomId = data.roomId.id || data.roomId.roomId || invitedRoomId; 
+    } else {
+        myRoomId = data.roomId;
+    }
+
     isHost = (socket.id === data.hostId);
     
-    // 2. Cambiar de pantalla y limpiar rastros de la anterior
+    // Validar que myRoomId no sea un objeto antes de pintar
+    const displayId = document.getElementById('displayRoomId');
+    if (displayId) {
+        displayId.innerText = (typeof myRoomId === 'string') ? myRoomId : "ERROR";
+    }
+
     showScreen('screen-lobby');
+    
+    // Ocultar formularios de entrada
     document.getElementById('guest-join-section').style.display = 'none';
     document.getElementById('standard-home-section').style.display = 'none';
 
-    // 3. Mostrar el ID de la sala (Evitar el undefined)
-    const displayId = document.getElementById('displayRoomId');
-    if (displayId) displayId.innerText = myRoomId;
+    // Configurar visibilidad según rol
+    setupLobbyUI();
+});
 
-    // 4. Lógica Diferenciada: Host vs Invitado
+function setupLobbyUI() {
     const shareContainer = document.getElementById('share-container');
     const hostControls = document.getElementById('hostControls');
-    const guestWaitMessage = document.getElementById('guest-wait-message'); // Necesitarás este ID en el HTML
+    const guestWait = document.getElementById('guest-wait-message');
 
     if (isHost) {
-        // El Host ve el enlace, el botón y la configuración
-        if (shareContainer) {
-            shareContainer.style.display = 'block';
-            document.getElementById('share-link').value = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
-        }
-        if (hostControls) hostControls.style.display = 'block';
-        if (guestWaitMessage) guestWaitMessage.style.display = 'none';
+        shareContainer.style.display = 'block';
+        hostControls.style.display = 'block';
+        guestWait.style.display = 'none';
+        document.getElementById('share-link').value = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
     } else {
-        // El Invitado NO ve el enlace, NI el botón, NI la configuración
-        if (shareContainer) shareContainer.style.display = 'none';
-        if (hostControls) hostControls.style.display = 'none';
-        if (guestWaitMessage) guestWaitMessage.style.display = 'block';
+        shareContainer.style.display = 'none';
+        hostControls.style.display = 'none';
+        guestWait.style.display = 'block';
     }
-});
+}
 
 // Función para copiar el enlace al portapapeles
 function copyLink() {

@@ -48,11 +48,16 @@ io.on('connection', (socket) => {
 		rooms[roomId].scores[socket.id] = 0;
 	
 		// 3. ENVIAR EL EVENTO (Asegúrate de que 'hostId' apunta a rooms[roomId].host)
-		socket.emit('roomJoined', { 
-			roomId: roomId, 
-			hostId: rooms[roomId].host // <--- IMPORTANTE: que no sea null
-		});
+		const roomData = { 
+			roomId: String(roomId),  // Forzamos que sea un texto
+			hostId: rooms[roomId].host 
+		};
 	
+		console.log("Enviando a cliente:", roomData); // Mira tu terminal de Node para confirmar
+		
+		socket.emit('roomJoined', roomData);
+	
+		socket.join(roomId);
 		// Notificamos al resto de la sala
 		io.to(roomId).emit('updatePlayers', rooms[roomId].players);
 	});
