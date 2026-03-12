@@ -51,9 +51,21 @@ function joinInvitedRoom() {
     }
 }
 
-function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+function showScreen(screenId) {
+    // Ocultar todas las pantallas
+    document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+    
+    // Mostrar la pantalla deseada
+    const target = document.getElementById(screenId);
+    if (target) {
+        target.style.display = 'block';
+    }
+
+    // Resetear específicamente las secciones de la Home por si acaso
+    if (screenId !== 'screen-home') {
+        document.getElementById('guest-join-section').style.display = 'none';
+        document.getElementById('standard-home-section').style.display = 'none';
+    }
 }
 
 function createRoom() {
