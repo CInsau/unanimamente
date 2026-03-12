@@ -65,10 +65,10 @@ function joinRoom() {
 }
 
 socket.on('roomJoined', (data) => {
-    myRoomId = data.roomId;
+    myRoomId = data.roomId.roomId;
     isHost = (socket.id === data.hostId);
     showScreen('screen-lobby');
-    document.getElementById('displayRoomId').innerText = myRoomId.roomId;
+    document.getElementById('displayRoomId').innerText = myRoomId;
 
     const shareContainer = document.getElementById('share-container');
     const hostControls = document.getElementById('hostControls');
