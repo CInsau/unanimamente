@@ -604,16 +604,13 @@ function handleWordClick(pid, index, wordText) {
         return;
     }
 
-    // REGLA 2: Si es tu palabra y está oculta, la revelas
-    const slot = document.getElementById(`slot-${pid}-${index}`);
-    if (slot.classList.contains('hidden')) {
-        socket.emit('wordClicked', {
-            roomId: myRoomId,
-            playerId: pid,
-            wordIndex: index,
-            word: word
-        });
-    }
+    // REGLA 2: Si es tu palabra, la revelas
+    socket.emit('wordClicked', {
+        roomId: myRoomId,
+        playerId: pid,
+        wordIndex: index,
+        word: word
+    });
 }
 
 socket.on('wordRevealed', (data) => {
