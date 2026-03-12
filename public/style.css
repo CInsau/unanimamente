@@ -274,9 +274,9 @@ input:disabled {
     background: #f0f0f0;
 }
 
-.word-slot.hidden .word-text { filter: blur(4px); opacity: 0.3; }
-.word-slot.solo { background-color: #ffebee; color: #c62828; } /* Rojo */
-.word-slot.matched { background-color: #e8f5e9; color: #2e7d32; font-weight: bold; } /* Verde */
+/*.word-slot.hidden .word-text { filter: blur(4px); opacity: 0.3; }
+.word-slot.solo { background-color: #ffebee; color: #c62828; } /* Rojo *
+.word-slot.matched { background-color: #e8f5e9; color: #2e7d32; font-weight: bold; } /* Verde **/
 
 /* Palabras en MI tarjeta que aún no he clicado */
 .my-card .word-slot:not(.matched):not(.solo) {
@@ -341,4 +341,23 @@ input:disabled {
     font-size: 0.7rem;
     color: red;
     font-weight: bold;
+}
+
+/* Solo aplicar colores si la palabra está revelada */
+.word-slot:not(.hidden).matched { 
+    background-color: #e8f5e9 !important; 
+    color: #2e7d32; 
+    font-weight: bold; 
+}
+
+.word-slot:not(.hidden).solo { 
+    background-color: #ffebee !important; 
+    color: #c62828; 
+}
+
+/* Las palabras ocultas deben ser siempre neutras */
+.word-slot.hidden {
+    background-color: #f0f0f0 !important;
+    color: transparent !important;
+    cursor: pointer;
 }

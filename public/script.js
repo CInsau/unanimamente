@@ -624,35 +624,57 @@ socket.on('wordRevealed', (data) => {
 });
 
 function updateRealTimeScores() {
-    const allVisible = document.querySelectorAll('.word-slot:not(.hidden)');
+    // 1. Seleccionamos TODOS los slots de todos los jugadores
+    const allSlots = document.querySelectorAll('.word-slot');
+    
+    // Limpieza inicial: quitamos colores y puntos de TODO antes de recalcular
+    allSlots.forEach(slot => {
+        slot.classList.remove('matched', 'solo');
+        const scoreSpan = slot.querySelector('.word-score');
+        if (scoreSpan) scoreSpan.innerText = '';
+    });
+
+    // 2. Filtramos solo las que están REVELADAS (sin la clase .hidden)
+    const visibleSlots = Array.from(allSlots).filter(slot => !slot.classList.contains('hidden'));
+    
     const groups = {};
 
-    // Normalizar y agrupar
-    allVisible.forEach(slot => {
+    // 3. Agrupamos palabras visibles por su texto normalizado
+    visibleSlots.forEach(slot => {
         const text = normalizeText(slot.querySelector('.word-text').innerText);
         if (!groups[text]) groups[text] = [];
         groups[text].push(slot);
     });
 
-    // Aplicar puntos (X puntos = X personas con la misma palabra)
-    // Borramos clases previas
-    document.querySelectorAll('.word-slot').forEach(s => {
-        s.classList.remove('matched', 'solo');
-        s.querySelector('.word-score').innerText = '';
-    });
-
+    // 4. Asignamos puntos solo a lo que se ve
     Object.values(groups).forEach(slots => {
         const count = slots.length;
         slots.forEach(slot => {
             const scoreSpan = slot.querySelector('.word-score');
             if (count > 1) {
-                slot.classList.add('matched');
+                slot.classList.add('matched'); // Verde
                 scoreSpan.innerText = `(${count})`;
             } else {
-                slot.classList.add('solo');
+                slot.classList.add('solo'); // Rojo
                 scoreSpan.innerText = '(0)';
             }
         });
+    });
+
+    // 5. Actualizar el total de la tarjeta (opcional, visual)
+    updateCardTotals();
+}
+
+function updateCardTotals() {
+    document.querySelectorAll('.player-card').forEach(card => {
+        const pid = card.id.replace('card-', '');
+        let total = 0;
+        // Solo sumamos los puntos de las que están en verde (matched)
+        card.querySelectorAll('.word-slot.matched .word-score').forEach(span => {
+            total += parseInt(span.innerText.replace(/\(|\)/g, '')) || 0;
+        });
+        const pointsDisplay = document.getElementById(`points-${pid}`);
+        if (pointsDisplay) pointsDisplay.innerText = total;
     });
 }
 
