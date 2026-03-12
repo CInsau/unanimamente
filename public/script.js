@@ -37,7 +37,7 @@ function normalizeText(text) {
 
 // Función para el invitado que entra por enlace
 function joinInvitedRoom() {
-    const nameInput = document.getElementById('playerNameGuest').value.trim();
+    const nameInput = document.getElementById('playerNameGuest');
     const name = nameInput.value.trim();
     if (name && invitedRoomId) {
         // Bloqueamos el botón y el input para evitar doble click
