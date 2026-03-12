@@ -605,12 +605,19 @@ function handleWordClick(pid, index, wordText) {
             }
         }
     }
+
+    socket.emit('wordClicked', {
+        roomId: myRoomId,
+        playerId: pid,
+        wordIndex: index,
+        word: word
+    });
 }
 
 socket.on('wordRevealed', (data) => {
     // Buscamos en todas las tarjetas quién tiene esta palabra
     // Nota: Esto asume que comparamos de forma normalizada
-    const allSlots = document.querySelectorAll('.word-slot');
+    /*const allSlots = document.querySelectorAll('.word-slot');
     
     allSlots.forEach(slot => {
         const slotText = slot.querySelector('.word-text').innerText;
@@ -627,11 +634,18 @@ socket.on('wordRevealed', (data) => {
             }
         }
     });
-    updateRealTimeScores();
+    updateRealTimeScores();*/
+
+    const slot = document.getElementById(`slot-${data.playerId}-${data.wordIndex}`);
+    if (slot) {
+        slot.classList.remove('hidden');
+        // IMPORTANTE: Después de revelar, recalculamos todo el tablero
+        updateRealTimeScores();
+    }
 });
 
 function updateRealTimeScores() {
-    // Recalcula los puntos visibles basándose en las clases 'matched'
+    /*// Recalcula los puntos visibles basándose en las clases 'matched'
     const players = Object.keys(players_local_cache);
     players.forEach(pid => {
         const matchedWords = document.querySelectorAll(`#card-${pid} .word-slot.matched`).length;
@@ -642,6 +656,52 @@ function updateRealTimeScores() {
             total += parseInt(scoreText.replace(/\(|\)/g, '')) || 0;
         });
         document.getElementById(`points-${pid}`).innerText = total;
+    });*/
+
+    const allVisibleSlots = document.querySelectorAll('.word-slot:not(.hidden)');
+    const wordGroups = {};
+
+    // 1. Agrupar palabras normalizadas que están visibles
+    allVisibleSlots.forEach(slot => {
+        const text = normalizeText(slot.querySelector('.word-text').innerText);
+        if (!wordGroups[text]) wordGroups[text] = [];
+        wordGroups[text].push(slot);
+    });
+
+    // 2. Asignar puntos basados en el tamaño del grupo
+    for (const text in wordGroups) {
+        const slots = wordGroups[text];
+        const count = slots.length;
+
+        slots.forEach(slot => {
+            const scoreSpan = slot.querySelector('.word-score');
+            
+            if (count > 1) {
+                // Coincidencia: Verde y X puntos
+                slot.classList.remove('solo');
+                slot.classList.add('matched');
+                scoreSpan.innerText = `(${count})`;
+            } else {
+                // Única: Rojo y 0 puntos
+                slot.classList.remove('matched');
+                slot.classList.add('solo');
+                scoreSpan.innerText = '(0)';
+            }
+        });
+    }
+
+    // 3. Actualizar el "Total Ronda" en cada tarjeta de jugador
+    document.querySelectorAll('.player-card').forEach(card => {
+        const pid = card.id.replace('card-', '');
+        let totalPoints = 0;
+        
+        card.querySelectorAll('.word-slot.matched .word-score').forEach(score => {
+            const val = parseInt(score.innerText.replace(/\(|\)/g, ''));
+            totalPoints += val;
+        });
+
+        const pointsDisplay = document.getElementById(`points-${pid}`);
+        if (pointsDisplay) pointsDisplay.innerText = totalPoints;
     });
 }
 
@@ -671,3 +731,23 @@ socket.on('newActiveSpeaker', (playerId) => {
     const activeCard = document.getElementById(`card-${playerId}`);
     if(activeCard) activeCard.style.borderColor = "#ffc107"; // Color amarillo/dorado para el turno
 });
+
+function fillRandomWords() {
+    // Lista corta para forzar coincidencias (unánima-mente)
+    const testWords = [
+        "Mesa", "Silla", "Vaso", "Plato", "Cuchillo", 
+        "Cuchara", "Horno", "Nevera", "Grifo", "Sartén",
+        "Sal", "Aceite", "Agua", "Pan", "Vino",
+        "Cucharo", "Honro", "Nebera", "Grifos", "Sarten"
+    ];
+
+    const inputs = document.querySelectorAll('#wordInputs input');
+    
+    inputs.forEach(input => {
+        // Selecciona una palabra al azar de la lista
+        const randomIndex = Math.floor(Math.random() * testWords.length);
+        input.value = testWords[randomIndex];
+    });
+
+    console.log("Campos rellenados con palabras de prueba.");
+}

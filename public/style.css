@@ -278,8 +278,6 @@ input:disabled {
 .word-slot.solo { background-color: #ffebee; color: #c62828; } /* Rojo */
 .word-slot.matched { background-color: #e8f5e9; color: #2e7d32; font-weight: bold; } /* Verde */
 
-.word-score { float: right; font-size: 0.8rem; }
-
 /* Palabras en MI tarjeta que aún no he clicado */
 .my-card .word-slot:not(.matched):not(.solo) {
     background-color: #fff;
@@ -305,4 +303,23 @@ input:disabled {
     margin-top: 10px;
     font-size: 0.9rem;
     font-weight: bold;
+}
+
+.word-score {
+    float: right;
+    margin-left: 10px;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+#screen-game .btn-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (min-width: 480px) {
+    #screen-game .btn-container {
+        flex-direction: row;
+    }
 }
