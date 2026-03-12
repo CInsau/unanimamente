@@ -342,6 +342,23 @@ io.on('connection', (socket) => {
 			}
 		}
 	});
+
+	socket.on('wordClicked', (data) => {
+		const { roomId, playerId, wordIndex, word } = data;
+		
+		// Validamos que la sala existe
+		if (rooms[roomId]) {
+			console.log(`Palabra revelada en sala ${roomId}: ${word} (Jugador: ${playerId})`);
+			
+			// Reenviamos a TODOS en la sala (incluyendo al que hizo clic)
+			// para que sus pantallas se actualicen y calculen puntos
+			io.to(roomId).emit('wordRevealed', {
+				playerId: playerId,
+				wordIndex: wordIndex,
+				word: word
+			});
+		}
+	});
 });
 
 const PORT = process.env.PORT || 3000;
@@ -357,20 +374,3 @@ function normalizeText(text) {
         .normalize("NFD") // Separa la letra de la tilde
         .replace(/[\u0300-\u036f]/g, ""); // Elimina los símbolos de tilde
 }
-
-socket.on('wordClicked', (data) => {
-    const { roomId, playerId, wordIndex, word } = data;
-    
-    // Validamos que la sala existe
-    if (rooms[roomId]) {
-        console.log(`Palabra revelada en sala ${roomId}: ${word} (Jugador: ${playerId})`);
-        
-        // Reenviamos a TODOS en la sala (incluyendo al que hizo clic)
-        // para que sus pantallas se actualicen y calculen puntos
-        io.to(roomId).emit('wordRevealed', {
-            playerId: playerId,
-            wordIndex: wordIndex,
-            word: word
-        });
-    }
-});
